@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* ===== Design System: AI萌宠换脸秀 ===== */
+page {
+  background-color: #FFFBF5;
+  font-family: 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* — Phone Shell — */
+.phone-shell {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  background: #FFFBF5;
+}
+
+/* — Cards — */
+.card-base {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(45, 43, 55, 0.06);
+  border: 1.5px solid rgba(45, 43, 55, 0.04);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* — Primary CTA Button — */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: 1.75rem;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: white;
+  background: linear-gradient(135deg, #FF8C42 0%, #FFAA6B 100%);
+  box-shadow: 0 8px 24px rgba(255, 140, 66, 0.30);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(255, 140, 66, 0.15);
+  }
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: 1.75rem;
+  font-weight: 700;
+  font-size: 16px;
+  color: #FF8C42;
+  background: rgba(255, 140, 66, 0.08);
+  border: 2px solid rgba(255, 140, 66, 0.15);
+  transition: all 0.25s ease;
+  
+  &:active {
+    transform: scale(0.97);
+    background: rgba(255, 140, 66, 0.14);
+  }
+}
+
+/* — Gradient Text — */
+.gradient-text {
+  background: linear-gradient(135deg, #FF8C42, #FF6B81);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-purple {
+  background: linear-gradient(135deg, #C4B0FF, #FF6B81);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* — Decorative Blobs — */
+.blob-orange {
+  background: radial-gradient(circle, rgba(255,140,66,0.15) 0%, transparent 70%);
+}
+.blob-lavender {
+  background: radial-gradient(circle, rgba(196,176,255,0.18) 0%, transparent 70%);
+}
+.blob-mint {
+  background: radial-gradient(circle, rgba(127,216,190,0.12) 0%, transparent 70%);
+}
