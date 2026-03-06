@@ -1,53 +1,48 @@
 <template>
-  <view class="flex flex-col items-center justify-center min-h-screen px-8 relative overflow-hidden">
+  <view class="flex flex-col items-center justify-center min-h-screen bg-brand-primary px-8 relative overflow-hidden">
     
-    <!-- Decorative blobs -->
-    <view class="absolute top-0 right-0 w-72 h-72 blob-orange rounded-full opacity-60 animate-float-slow"></view>
-    <view class="absolute bottom-20 left-0 w-56 h-56 blob-lavender rounded-full opacity-50" style="animation: floatSlow 8s ease-in-out infinite reverse"></view>
+    <!-- Decorative background elements -->
+    <view class="absolute top-0 right-[-10%] w-[120%] h-[70%] bg-white/10 rounded-full blur-[100px]"></view>
+    <view class="absolute bottom-[-10%] left-[-20%] w-[100%] h-[60%] bg-indigo-400/20 rounded-full blur-[80px]"></view>
 
-    <!-- Main Animation Container -->
-    <view class="relative w-48 h-48 mb-12 animate-fade-in">
+    <!-- Main Animation Container: Inspired by Design's minimalist aesthetic -->
+    <view class="relative w-48 h-48 mb-12 flex items-center justify-center">
       
-      <!-- Pulse rings -->
-      <view class="absolute inset-0 rounded-full border-2 border-brand-orange/20 animate-pulse-ring"></view>
-      <view class="absolute inset-0 rounded-full border-2 border-brand-lavender/15 animate-pulse-ring" style="animation-delay: 0.7s"></view>
+      <!-- Pulse rings that look like meditation waves -->
+      <view class="absolute inset-0 rounded-full border-4 border-white/20 animate-pulse-ring"></view>
+      <view class="absolute inset-8 rounded-full border border-white/30 animate-pulse-ring" style="animation-delay: 0.5s"></view>
       
-      <!-- Spinning orbit -->
-      <view class="absolute inset-[-12px] rounded-full border-[3px] border-transparent border-t-brand-orange/60 border-r-brand-lavender/30 animate-spin-slow"></view>
-      
-      <!-- Pet image in center -->
-      <view class="absolute inset-3 rounded-full overflow-hidden shadow-float border-4 border-white">
+      <!-- Pet image in center (Zen Circle) -->
+      <view class="z-10 w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-2xl animate-float-mid">
         <image :src="petImage" mode="aspectFill" class="w-full h-full" />
       </view>
       
-      <!-- Floating emoji decorations -->
-      <view class="absolute -top-4 -right-2 text-2xl animate-float-mid">✨</view>
-      <view class="absolute -bottom-2 -left-4 text-2xl animate-wiggle">🪄</view>
-      <view class="absolute top-1/2 -right-6 text-lg animate-bounce-cute" style="animation-delay: 0.3s">🎨</view>
+      <!-- Floating icons from design cards (random selection) -->
+      <view class="absolute -top-4 -right-2 text-3xl animate-bounce-cute">✨</view>
+      <view class="absolute -bottom-2 -left-4 text-3xl animate-wiggle">🎨</view>
     </view>
     
     <!-- Text Area -->
-    <view class="text-center space-y-4 relative z-10 animate-fade-in" style="animation-delay: 0.3s">
-      <text class="block text-2xl font-extrabold text-ink tracking-tight">魔法生成中…</text>
+    <view class="text-center relative z-10">
+      <text class="block text-3xl font-bold text-white mb-6 uppercase tracking-widest">AI 绘制中...</text>
       
-      <!-- Rolling tips -->
-      <view class="h-12 overflow-hidden relative">
+      <!-- Tips -->
+      <view class="h-16 overflow-hidden relative">
         <view class="animate-roll-text">
-          <text v-for="(tip, idx) in tips" :key="idx" class="block text-ink-secondary text-sm leading-[3rem] text-center">
+          <text v-for="(tip, idx) in tips" :key="idx" class="block text-white/70 text-sm leading-[4rem] text-center italic">
             {{ tip }}
           </text>
-          <!-- Repeat first for seamless loop -->
-          <text class="block text-ink-secondary text-sm leading-[3rem] text-center">{{ tips[0] }}</text>
+          <text class="block text-white/70 text-sm leading-[4rem] text-center italic">{{ tips[0] }}</text>
         </view>
       </view>
     </view>
     
-    <!-- Bottom progress hint -->
-    <view class="mt-16 flex flex-col items-center gap-3 animate-fade-in" style="animation-delay: 0.6s">
-      <view class="w-48 h-1.5 bg-brand-orange/10 rounded-full overflow-hidden">
-        <view class="h-full bg-gradient-to-r from-brand-orange to-brand-peach rounded-full animate-shimmer-bar"></view>
+    <!-- Progress Indicator -->
+    <view class="mt-16 w-3/4 flex flex-col items-center gap-4">
+      <view class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+        <view class="h-full bg-white rounded-full animate-shimmer-bar"></view>
       </view>
-      <text class="text-ink-tertiary text-xs">大约需要 10 秒，请耐心等待哦 💛</text>
+      <text class="text-white/40 text-[10px] uppercase tracking-[0.2em]">Cracking the DNA of Cuteness</text>
     </view>
   </view>
 </template>
@@ -59,41 +54,69 @@ const props = defineProps<{
 }>();
 
 const tips = [
-  `🎨 正在为小主调制 ${props.styleName} 风格…`,
-  '🐾 正在分析宠物的可爱基因…',
-  '✨ 正在注入魔法粒子…',
-  '🪄 正在精修五官细节…',
-  '💫 快好了，马上揭晓！',
+  `正在分析毛发细节...`,
+  '正在应用风格化滤镜...',
+  'AI 画师正在构图中...',
+  '最后亿点点细节...',
 ];
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 @keyframes rollText {
   0% { transform: translateY(0); }
-  18% { transform: translateY(0); }
-  20% { transform: translateY(-3rem); }
-  38% { transform: translateY(-3rem); }
-  40% { transform: translateY(-6rem); }
-  58% { transform: translateY(-6rem); }
-  60% { transform: translateY(-9rem); }
-  78% { transform: translateY(-9rem); }
-  80% { transform: translateY(-12rem); }
-  98% { transform: translateY(-12rem); }
-  100% { transform: translateY(-15rem); }
+  25% { transform: translateY(-4rem); }
+  50% { transform: translateY(-8rem); }
+  75% { transform: translateY(-12rem); }
+  100% { transform: translateY(-16rem); }
 }
 
 .animate-roll-text {
-  animation: rollText 12s infinite;
+  animation: rollText 12s infinite steps(1);
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 3s ease-out infinite;
 }
 
 @keyframes shimmerBar {
-  0% { width: 5%; }
-  50% { width: 70%; }
-  80% { width: 85%; }
-  100% { width: 95%; }
+  0% { width: 0%; }
+  100% { width: 100%; }
 }
 
 .animate-shimmer-bar {
   animation: shimmerBar 10s ease-out forwards;
 }
+
+.animate-float-mid {
+    animation: floatMid 4s ease-in-out infinite;
+}
+
+@keyframes floatMid {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-bounce-cute {
+    animation: bounceCute 2s ease-in-out infinite;
+}
+
+@keyframes bounceCute {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-wiggle {
+    animation: wiggle 2.5s ease-in-out infinite;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
 </style>

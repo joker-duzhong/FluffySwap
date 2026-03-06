@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // 禁用 preflight，因为这在小程序中会导致样式错乱
+  corePlugins: {
+    preflight: false,
+  },
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
@@ -8,23 +12,29 @@ module.exports = {
     extend: {
       colors: {
         brand: {
+          primary: '#8E97FD',      // Silent Moon Purple
           orange: '#FF8C42',       // 暖橘主色
           peach: '#FFAA6B',        // 蜜桃过渡
           coral: '#FF6B81',        // 珊瑚强调
           lavender: '#C4B0FF',     // 薰衣草紫
           mint: '#7FD8BE',         // 薄荷绿
           lemon: '#FFE066',        // 柠檬黄
+          'soft-orange': '#FA6E5A', // Design orange card
+          'soft-yellow': '#FEB754', // Design yellow card
+          'soft-green': '#6CB28E',  // Design green card
+          'soft-dark': '#3F414E',   // Design dark card
+          'soft-pink': '#D4A5A5',   // Design pink card
         },
         surface: {
-          DEFAULT: '#FFFBF5',      // 奶油白底色
+          DEFAULT: '#F9F9F9',      // Base grey
           card: '#FFFFFF',
-          muted: '#FFF7ED',        // 暖灰底板
+          muted: '#8E97FD',        // Purple background
           overlay: 'rgba(255,251,245,0.85)',
         },
         ink: {
-          DEFAULT: '#2D2B37',      // 深墨字色
-          secondary: '#8E8C97',    // 次级灰
-          tertiary: '#C5C3CC',     // 辅助灰
+          DEFAULT: '#3F414E',      // Dark text from design
+          secondary: '#A1A4B2',    // Muted text
+          tertiary: '#FFECCC',     // Light/Hint text
           inverse: '#FFFFFF',
         },
       },

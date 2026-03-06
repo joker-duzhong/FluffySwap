@@ -16,7 +16,7 @@ const API_BASE_URL = 'https://back.zaiwenai.com/api/v1/ai/images';
 
 // Model configuration
 // Options: Flux-2-Klein-9B-Base, Flux-2-Turbo, Ideogram-v3, Kling-Image-O1, etc.
-const MODEL_NAME = 'recraftv3'; 
+const MODEL_NAME = 'Flux-2-Klein-9B-Base'; 
 
 export const petAIService = {
   /**
@@ -105,7 +105,7 @@ export const petAIService = {
    * Polls the API for the result of a task.
    */
   async pollResult(taskId: string): Promise<GenerateResult> {
-    const MAX_ATTEMPTS = 30; // 60 seconds max
+    const MAX_ATTEMPTS = 60; // 60 seconds max
     const POLL_INTERVAL = 2000; // 2 seconds
 
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
@@ -115,7 +115,7 @@ export const petAIService = {
         try {
             const fetchRes = await uni.request({
                 url: `${API_BASE_URL}/fetch`,
-                method: 'POST', // Using POST as per docs for fetch
+                method: 'POST',
                 header: {
                     'Authorization': `Bearer ${API_KEY}`,
                     'Content-Type': 'application/json'
@@ -129,45 +129,38 @@ export const petAIService = {
 
             const data = fetchRes.data as any;
             
-            // Expected response logic based on provided curl example:
-            // STATUS=$(echo "$RESP" | jq -r '.info.status // .status // empty')
-            // echo "$RESP" | jq -r '.info.imageUrl[]?'
-            
-            const status = data.info?.status || data.status;
+            // Expected structure:
+            // { "info": { "imageUrl": ["..."], "status": "SUCCESS", ... }, ... }
+            const info = data.info;
 
-            console.log(`Polling task ${taskId}: ${status}`);
+            if (info && info.status) {
+                const status = info.status;
+                console.log(`Polling task ${taskId}: ${status}`);
 
-            if (status === 'SUCCESS') {
-                // Extract image URL
-                let imageUrl = '';
-                const images = data.info?.imageUrl || data.imageUrl || data.data?.imageUrl;
-                
-                if (Array.isArray(images) && images.length > 0) {
-                    imageUrl = images[0];
-                } else if (typeof images === 'string') {
-                    imageUrl = images;
-                }
-
-                if (imageUrl) {
+                if (status === 'SUCCESS') {
+                    // Extract image URL
+                    const images = info.imageUrl;
+                    
+                    if (Array.isArray(images) && images.length > 0) {
+                        return {
+                            imageUrl: images[0],
+                            success: true,
+                            status: 'success'
+                        };
+                    } else {
+                        throw new Error('Success status but no image URL found');
+                    }
+                } else if (status === 'FAILURE') {
+                    // Fail
+                    console.error('Task failed:', info.msg || 'Unknown reason');
                     return {
-                        imageUrl,
-                        success: true,
-                        status: 'success'
+                        imageUrl: '',
+                        success: false,
+                        status: 'failure'
                     };
-                } else {
-                    // Sometimes success might not have URL immediately? But status says SUCCESS.
-                    throw new Error('Success status but no image URL found');
                 }
-            } else if (status === 'FAILURE') {
-                const msg = data.info?.msg || data.status?.msg || 'Unknown error';
-                console.error('Task failed:', msg);
-                return {
-                    imageUrl: '',
-                    success: false,
-                    status: 'failure'
-                };
+                // If IN_PROGRESS or others, continue polling
             }
-            // If IN_PROGRESS, loop again
         } catch (err) {
             console.error('Polling error:', err);
         }

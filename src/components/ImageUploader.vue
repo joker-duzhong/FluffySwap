@@ -3,37 +3,34 @@
     <!-- Empty State: Upload Area -->
     <view 
       v-if="!image"
-      class="w-full aspect-[4/3] rounded-3xl border-[3px] border-dashed border-brand-orange/30 bg-surface-muted flex flex-col items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] active:bg-brand-orange/5"
+      class="w-full h-24 rounded-[30px] border-[2px] border-dashed border-white/40 flex items-center px-6 gap-4 transition-all duration-300 active:scale-[0.98] active:bg-white/5 box-border"
       @tap="chooseImage"
     >
-      <!-- Cute Cat Icon -->
-      <view class="w-20 h-20 rounded-full bg-white shadow-card flex items-center justify-center animate-float-slow">
-        <text class="text-4xl">🐱</text>
+      <view class="w-12 h-12 rounded-full bg-indigo-200/20 backdrop-blur-md flex items-center justify-center shrink-0">
+        <text class="text-2xl">📸</text>
       </view>
-      <text class="text-ink font-bold text-base mt-1">点击上传萌宠照片</text>
-      <text class="text-ink-tertiary text-xs">支持拍照或从相册选择 · 正脸效果最佳</text>
+      <view class="flex flex-col flex-1 min-w-0">
+          <text class="text-white font-bold text-sm tracking-wide">上传爱宠照片</text>
+          <text class="text-white/60 text-[10px] uppercase tracking-widest mt-0.5 truncate">让它变身超级明星</text>
+      </view>
     </view>
     
-    <!-- Filled State: Preview -->
-    <view v-else class="w-full aspect-[4/3] rounded-3xl overflow-hidden relative shadow-card group">
-      <image :src="image" mode="aspectFill" class="w-full h-full" />
+    <!-- Filled State -->
+    <view v-else class="w-full h-24 rounded-[30px] overflow-hidden relative shadow-lg group flex items-center px-4 bg-white/20 backdrop-blur-lg border border-white/30 box-border">
+        <image :src="image" mode="aspectFill" class="w-14 h-14 rounded-2xl shrink-0" />
+        
+        <view class="ml-4 flex-1 min-w-0">
+            <text class="text-white font-bold text-sm">照片已上传</text>
+            <text class="text-white/60 text-[10px] uppercase tracking-widest mt-0.5 truncate" @tap="chooseImage">点击更换照片</text>
+        </view>
       
-      <!-- Gradient overlay at bottom -->
-      <view class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/30 to-transparent"></view>
-      
-      <!-- Delete Button -->
-      <view 
-        @tap="removeImage" 
-        class="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center active:scale-90 transition-transform"
-      >
-        <text class="text-white text-lg font-light">✕</text>
-      </view>
-      
-      <!-- Re-select hint -->
-      <view class="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
-        <text class="text-xs">📷</text>
-        <text class="text-ink-secondary text-xs font-semibold" @tap="chooseImage">重新选择</text>
-      </view>
+        <!-- Delete Button -->
+        <view 
+            @tap.stop="removeImage" 
+            class="w-8 h-8 rounded-full bg-white/10 backdrop-blur flex items-center justify-center active:scale-90 transition-transform"
+        >
+            <text class="text-white text-sm font-light">✕</text>
+        </view>
     </view>
   </view>
 </template>

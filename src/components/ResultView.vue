@@ -1,90 +1,91 @@
 <template>
-  <view class="min-h-screen flex flex-col pb-10 relative overflow-hidden">
+  <view class="min-h-screen bg-brand-primary flex flex-col relative overflow-hidden pb-12">
     
-    <!-- Decorative elements -->
-    <view class="absolute top-0 right-0 w-60 h-60 blob-orange rounded-full opacity-40"></view>
-    <view class="absolute bottom-40 left-0 w-40 h-40 blob-lavender rounded-full opacity-30"></view>
+    <!-- Background Decorative Elements -->
+    <view class="absolute inset-0 pointer-events-none">
+      <view class="absolute top-0 right-[-10%] w-[120%] h-[70%] bg-white/10 rounded-full blur-[100px]"></view>
+      <view class="absolute bottom-[-10%] left-[-20%] w-[100%] h-[60%] bg-indigo-400/20 rounded-full blur-[80px]"></view>
+    </view>
 
     <!-- Top Bar -->
-    <view class="flex items-center justify-between px-5 pt-14 pb-4 relative z-10">
-      <view @tap="$emit('goHome')" class="w-10 h-10 rounded-2xl bg-white shadow-card flex items-center justify-center active:scale-90 transition-transform">
-        <text class="text-ink text-lg">←</text>
+    <view class="pt-16 px-8 flex items-center justify-between mb-8 z-10">
+      <view @tap="$emit('goHome')" class="w-10 h-10 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center active:scale-90 transition-transform backdrop-blur-sm">
+        <text class="text-white text-sm">←</text>
       </view>
-      <text class="text-ink font-extrabold text-lg">变身完成</text>
+      <text class="text-white font-bold tracking-widest text-xs uppercase opacity-80">作品详情</text>
       <view class="w-10"></view>
     </view>
     
-    <!-- Celebration Title -->
-    <view class="text-center px-6 mb-6 animate-fade-in-up relative z-10">
-      <text class="text-3xl mb-2 block">🎉</text>
-      <text class="block text-2xl font-extrabold text-ink tracking-tight">当当！生成完毕！</text>
-      <text class="block text-ink-secondary text-sm mt-2">{{ styleName }} · 专属魔法作品</text>
+    <!-- Title Area (Design Theme) -->
+    <view class="px-8 mb-8 animate-fade-in z-10 text-center">
+        <text class="text-3xl font-bold text-white block mb-1 drop-shadow-md">萌宠变身成功</text>
+        <text class="text-white/80 text-sm font-light uppercase tracking-widest">{{ styleName }} 风格</text>
     </view>
     
-    <!-- Result Image Card -->
-    <view class="px-5 mb-6 animate-fade-in-up relative z-10" style="animation-delay: 0.15s">
-      <view class="card-base overflow-hidden shadow-card-hover">
-        <!-- Main Result -->
-        <view class="w-full aspect-[3/4] relative bg-surface-muted">
-          <image :src="resultImage" mode="aspectFill" class="w-full h-full" />
+    <!-- Result Image Card (Integrated Aesthetic) -->
+    <view class="px-8 mb-10 animate-fade-in flex-1 z-10 flex flex-col justify-center">
+      <view class="w-full aspect-square relative rounded-[32px] overflow-hidden shadow-2xl border-[6px] border-white/20 bg-black/20 group">
+          <!-- Main Result -->
+          <image :src="resultImage || defaultImg" mode="aspectFill" class="w-full h-full" />
           
-          <!-- Watermark -->
-          <view v-if="!hasPaid" class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <view class="transform rotate-[-25deg] opacity-15">
-              <text class="text-white text-4xl font-black tracking-[0.3em] drop-shadow-lg">FluffySwap</text>
-            </view>
+          <!-- Watermark Overlay (Minimal) -->
+          <view v-if="!hasPaid" class="absolute inset-x-0 bottom-4 flex items-center justify-center pointer-events-none">
+            <text class="text-white/40 text-[10px] tracking-[0.5em] uppercase font-black">AI 萌宠换脸秀</text>
           </view>
-          
-          <!-- Style badge -->
-          <view class="absolute bottom-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full">
-            <text class="text-white text-xs font-bold">{{ styleName }}</text>
-          </view>
-        </view>
-        
-        <!-- Before / After comparison strip -->
-        <view class="p-4 flex items-center gap-4 border-t border-ink/5">
-          <view class="w-14 h-14 rounded-2xl overflow-hidden shadow-card flex-shrink-0 border-2 border-white">
-            <image :src="originalImage" mode="aspectFill" class="w-full h-full" />
-          </view>
-          <view class="flex-1">
-            <text class="block text-ink font-bold text-sm">原图对比</text>
-            <text class="block text-ink-tertiary text-xs mt-0.5">左边是原始萌照哦 →</text>
-          </view>
-          <view class="text-2xl animate-wiggle">🐾</view>
-        </view>
       </view>
     </view>
     
-    <!-- Action Buttons -->
-    <view class="px-5 space-y-3 mt-auto animate-fade-in-up relative z-10" style="animation-delay: 0.3s">
+    <!-- Actions (Button Style from Design) -->
+    <view class="px-8 space-y-4 z-10">
       
-      <!-- Primary: Save HD -->
-      <view class="btn-primary" @tap="$emit('saveHD')">
-        <text class="text-xl mr-2">💾</text>
-        <text>保存高清大图</text>
-      </view>
+      <!-- Primary Action -->
+      <button 
+        class="bg-white w-full h-14 rounded-full font-bold text-sm tracking-widest text-brand-primary shadow-lg active:scale-95 transition-all flex items-center justify-center border-none"
+        @tap="$emit('saveHD')"
+      >
+        <text class="mr-2">📥</text> 保存高清大图
+      </button>
       
-      <!-- Secondary: Share -->
-      <view class="btn-secondary" @tap="$emit('share')">
-        <text class="text-xl mr-2">📱</text>
-        <text>分享到小红书</text>
-      </view>
+      <!-- Secondary Action -->
+      <button 
+        class="bg-white/20 border border-white/30 w-full h-14 rounded-full font-semibold text-sm tracking-widest text-white active:scale-95 transition-all flex items-center justify-center backdrop-blur-md"
+        @tap="$emit('share')"
+      >
+        <text class="mr-2">🌈</text> 分享给朋友
+      </button>
       
-      <!-- Tertiary: Redo -->
-      <view class="flex items-center justify-center py-4" @tap="$emit('goHome')">
-        <text class="text-ink-tertiary text-sm font-medium">不满意？再来一次 🔄</text>
+      <view class="pt-4 flex justify-center" @tap="$emit('goHome')">
+        <text class="text-white/60 text-[10px] uppercase tracking-widest font-bold border-b border-white/20 pb-1">再玩一次</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  resultImage: string;
-  originalImage: string;
-  styleName: string;
-  hasPaid: boolean;
-}>();
+interface Props {
+  resultImage?: string;
+  originalImage?: string;
+  styleName?: string;
+  hasPaid?: boolean;
+}
 
+const props = withDefaults(defineProps<Props>(), {
+  resultImage: '',
+  originalImage: '',
+  styleName: 'Unknown',
+  hasPaid: false,
+});
+
+const defaultImg = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYIrlSJt1LdAFrSBBwy2ZrE8pKkcZ3tlUt9A&s";
 defineEmits(['saveHD', 'share', 'goHome']);
 </script>
+
+<style scoped>
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+}
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+</style>
