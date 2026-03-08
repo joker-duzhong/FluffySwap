@@ -41,6 +41,9 @@ import { ensureOnlineUrl } from '@/utils/qiniu-upload';
 import { historyService } from '@/utils/history-service';
 import { taskService } from '@/utils/task-service';
 import type { HistoryRecord } from '@/types/history';
+import { pointsService } from '@/utils/points-service';
+import { getModelCost } from '@/config/models';
+import { getSelectedModel } from '@/utils/model-service';
 
 const store = usePetStore();
 const styleList = prompts as StyleItem[];
@@ -197,6 +200,27 @@ const onStyleSelect = (style: StyleItem) => {
 const handleGenerate = async () => {
   if (!store.originalImage || !store.selectedStyle) return;
 
+  // 检查点数
+  const modelId = getSelectedModel();
+  const cost = getModelCost(modelId);
+
+  if (!pointsService.canAfford(cost)) {
+    uni.showModal({
+      title: '点数不足',
+      content: `当前需要 ${cost} 点，您还有 ${pointsService.getBalance()} 点。明天签到可获得 10 点哦！`,
+      showCancel: false,
+      confirmText: '我知道了'
+    });
+    return;
+  }
+
+  // 扣除点数
+  const spent = pointsService.spend(cost);
+  if (!spent) {
+    uni.showToast({ title: '点数扣除失败，请重试', icon: 'none' });
+    return;
+  }
+
   store.goTo('loading');
   stopPolling();
 
@@ -207,6 +231,8 @@ const handleGenerate = async () => {
     const submitResult = await petAIService.submitTask(imageUrl, store.selectedStyle);
 
     if (!submitResult.success || !submitResult.taskId) {
+      // 任务提交失败，退还点数
+      pointsService.add(cost, '任务失败退还');
       uni.showToast({ title: '提交失败: ' + (submitResult.status || '请重试'), icon: 'none' });
       store.goTo('styleSelect');
       return;
@@ -238,6 +264,8 @@ const handleGenerate = async () => {
 
   } catch (e) {
     console.error('Generate error:', e);
+    // 发生异常，退还点数
+    pointsService.add(cost, '任务失败退还');
     uni.showToast({ title: '生成失败，请重试', icon: 'none' });
     store.goTo('styleSelect');
   }
