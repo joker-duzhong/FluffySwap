@@ -36,12 +36,13 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
+defineProps<{
   image: string | null;
 }>();
 
-const emit = defineEmits(['update:image']);
+const emit = defineEmits<{ 'update:image': [value: string | null] }>();
 
+/** 选择本地图片，临时存 store，等确认生成时再上传七牛 */
 const chooseImage = () => {
   uni.chooseImage({
     count: 1,
@@ -49,7 +50,7 @@ const chooseImage = () => {
     sourceType: ['album', 'camera'],
     success: (res) => {
       emit('update:image', res.tempFilePaths[0]);
-    }
+    },
   });
 };
 

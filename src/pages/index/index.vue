@@ -36,6 +36,7 @@ import { usePetStore } from '@/stores/petStore';
 import type { StyleItem } from '@/stores/petStore';
 import { petAIService } from '@/services/petAIService';
 import { prompts } from '@/config/prompt';
+import { ensureOnlineUrl } from '@/utils/qiniu-upload';
 
 const store = usePetStore();
 const styleList = prompts as StyleItem[];
@@ -53,6 +54,8 @@ const onStyleSelect = (style: StyleItem) => {
   store.selectStyle(style);
 };
 
+// 统一上传七牛获取在线地址，相同图片命中 hash 缓存则不再上传
+
 // Generation
 const handleGenerate = async () => {
   if (!store.originalImage || !store.selectedStyle) return;
@@ -60,8 +63,9 @@ const handleGenerate = async () => {
   store.goTo('loading');
 
   try {
+    const imageUrl = await ensureOnlineUrl(store.originalImage);
     const result = await petAIService.generateFaceSwap(
-      store.originalImage,
+      imageUrl,
       store.selectedStyle
     );
     if (result.success) {

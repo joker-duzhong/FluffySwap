@@ -16,7 +16,7 @@ const API_BASE_URL = 'https://back.zaiwenai.com/api/v1/ai/images';
 
 // Model configuration
 // Options: Flux-2-Klein-9B-Base, Flux-2-Turbo, Ideogram-v3, Kling-Image-O1, etc.
-const MODEL_NAME = 'Flux-2-Klein-9B-Base'; 
+const MODEL_NAME = 'grok-imagine-image'; 
 
 export const petAIService = {
   /**
