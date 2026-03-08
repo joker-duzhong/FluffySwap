@@ -1,15 +1,10 @@
 import { defineStore } from 'pinia';
+import type { StyleItem } from '@/config/prompt';
 
 export type AppStep = 'home' | 'styleSelect' | 'loading' | 'result';
 
-export interface StyleItem {
-  id: number;
-  name: string;
-  description: string;
-  suitable_for: string;
-  prompt: string;
-  negative_prompt: string;
-}
+// Re-export StyleItem for backward compatibility
+export type { StyleItem } from '@/config/prompt';
 
 export const usePetStore = defineStore('pet', {
   state: () => ({
