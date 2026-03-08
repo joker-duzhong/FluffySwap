@@ -2,7 +2,7 @@
   <view class="min-h-screen bg-white flex flex-col relative overflow-hidden">
     
     <!-- Top Bar -->
-    <view class="pt-16 px-8 pb-4">
+    <view class="pt-12 px-8 pb-4">
       <view @tap="$emit('back')" class="mb-4 w-10 h-10 rounded-2xl border border-gray-200 flex items-center justify-center active:scale-90 transition-transform">
         <text class="text-ink text-sm">←</text>
       </view>

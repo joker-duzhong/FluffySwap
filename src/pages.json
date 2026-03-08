@@ -6,6 +6,13 @@
 				"navigationBarTitleText": "AI萌宠换脸秀",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/history/history",
+			"style": {
+				"navigationBarTitleText": "我的作品",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

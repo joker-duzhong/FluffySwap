@@ -20,14 +20,15 @@
     <!-- ========== State 4: Result ========== -->
     <view v-else-if="store.currentStep === 'result'">
       <ResultView :resultImage="store.resultImage!" :originalImage="store.originalImage!"
-        :styleName="store.selectedStyle?.name || ''" :hasPaid="store.hasPaid" @saveHD="handleSaveHD"
-        @share="handleShare" @goHome="handleReset" />
+        :styleName="store.selectedStyle?.name || ''" :hasPaid="store.hasPaid" @goHome="handleReset" />
     </view>
 
   </view>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
 import HomeView from '@/components/HomeView.vue';
 import StyleSelectView from '@/components/StyleSelectView.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -37,9 +38,147 @@ import type { StyleItem } from '@/stores/petStore';
 import { petAIService } from '@/services/petAIService';
 import { prompts } from '@/config/prompt';
 import { ensureOnlineUrl } from '@/utils/qiniu-upload';
+import { historyService } from '@/utils/history-service';
+import { taskService } from '@/utils/task-service';
+import type { HistoryRecord } from '@/types/history';
 
 const store = usePetStore();
 const styleList = prompts as StyleItem[];
+
+// 用于强制刷新视图的 key
+const forceKey = ref(0);
+
+// 当前进行中的任务相关
+let currentHistoryId: string | null = null;
+let pollingTimer: number | null = null;
+
+/** 开始轮询任务 */
+const startPolling = (taskId: string, historyId: string, originalImage: string) => {
+  currentHistoryId = historyId;
+
+  const poll = async () => {
+    const result = await petAIService.pollOnce(taskId);
+
+    if (result.success) {
+      // 任务完成，更新历史记录
+      historyService.update(historyId, {
+        resultImage: result.imageUrl,
+        isProcessing: false
+      });
+      taskService.clearTask();
+
+      store.resultImage = result.imageUrl;
+      store.goTo('result');
+
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    } else if (result.status === 'failed' || result.status === 'no_image') {
+      // 任务失败
+      historyService.update(historyId, { isProcessing: false });
+      taskService.clearTask();
+      uni.showToast({ title: '生成失败，请重试', icon: 'none' });
+      store.goTo('styleSelect');
+
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+    // processing 状态继续轮询
+  };
+
+  // 每 2 秒轮询一次
+  pollingTimer = setInterval(poll, 2000) as unknown as number;
+  // 立即执行一次
+  poll();
+};
+
+/** 停止轮询 */
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+};
+
+// 监听从历史记录页面返回的事件
+const handleHistorySelect = (data: { historyId: string }) => {
+  const record = historyService.getById(data.historyId);
+  if (!record) return;
+
+  if (record.isProcessing && record.taskId) {
+    // 未完成的任务，恢复轮询
+    store.originalImage = record.originalImage;
+    store.selectedStyle = {
+      id: record.styleId,
+      name: record.styleName,
+      prompt: '',
+    } as StyleItem;
+    store.goTo('loading');
+
+    // 开始轮询
+    startPolling(record.taskId, record.id, record.originalImage);
+  } else {
+    // 已完成的记录
+    store.originalImage = record.originalImage;
+    store.resultImage = record.resultImage;
+    store.selectedStyle = {
+      id: record.styleId,
+      name: record.styleName,
+      prompt: '',
+    } as StyleItem;
+    store.hasPaid = record.hasPaid;
+    store.goTo('result');
+    forceKey.value++;
+  }
+};
+
+// 监听从首页恢复未完成任务
+const handleResumeTask = () => {
+  const task = taskService.getTask();
+  if (!task) return;
+
+  // 先在历史记录中查找
+  let record = historyService.getByTaskId(task.taskId);
+
+  if (!record) {
+    // 如果没有历史记录，创建一个
+    record = historyService.add({
+      originalImage: task.originalImage,
+      resultImage: '',
+      styleId: task.styleId,
+      styleName: task.styleName,
+      hasPaid: false,
+      isProcessing: true,
+      taskId: task.taskId,
+    });
+  }
+
+  // 恢复状态
+  store.originalImage = task.originalImage;
+  store.selectedStyle = {
+    id: task.styleId,
+    name: task.styleName,
+    prompt: task.stylePrompt,
+  } as StyleItem;
+  store.goTo('loading');
+
+  // 开始轮询
+  startPolling(task.taskId, record.id, task.originalImage);
+};
+
+onMounted(() => {
+  uni.$on('historySelect', handleHistorySelect);
+  uni.$on('resumeTask', handleResumeTask);
+});
+
+onUnmounted(() => {
+  uni.$off('historySelect', handleHistorySelect);
+  uni.$off('resumeTask', handleResumeTask);
+  stopPolling();
+});
 
 // Navigation
 const goToStyleSelect = () => {
@@ -54,55 +193,78 @@ const onStyleSelect = (style: StyleItem) => {
   store.selectStyle(style);
 };
 
-// 统一上传七牛获取在线地址，相同图片命中 hash 缓存则不再上传
-
 // Generation
 const handleGenerate = async () => {
   if (!store.originalImage || !store.selectedStyle) return;
 
   store.goTo('loading');
+  stopPolling();
 
   try {
     const imageUrl = await ensureOnlineUrl(store.originalImage);
-    const result = await petAIService.generateFaceSwap(
-      imageUrl,
-      store.selectedStyle
-    );
-    if (result.success) {
-      store.resultImage = result.imageUrl;
-      store.goTo('result');
-    } else {
-      uni.showToast({ title: '生成失败: ' + (result.status || '请重试'), icon: 'none' });
+
+    // 提交任务
+    const submitResult = await petAIService.submitTask(imageUrl, store.selectedStyle);
+
+    if (!submitResult.success || !submitResult.taskId) {
+      uni.showToast({ title: '提交失败: ' + (submitResult.status || '请重试'), icon: 'none' });
       store.goTo('styleSelect');
+      return;
     }
+
+    // 保存任务到 task-service
+    taskService.saveTask({
+      taskId: submitResult.taskId,
+      originalImage: imageUrl,
+      styleId: store.selectedStyle.id,
+      styleName: store.selectedStyle.name,
+      stylePrompt: store.selectedStyle.prompt,
+    });
+    taskService.updateStatus('processing');
+
+    // 保存到历史记录（标记为处理中）
+    const historyRecord = historyService.add({
+      originalImage: imageUrl,
+      resultImage: '',
+      styleId: store.selectedStyle.id,
+      styleName: store.selectedStyle.name,
+      hasPaid: false,
+      isProcessing: true,
+      taskId: submitResult.taskId,
+    });
+
+    // 开始轮询
+    startPolling(submitResult.taskId, historyRecord.id, imageUrl);
+
   } catch (e) {
+    console.error('Generate error:', e);
     uni.showToast({ title: '生成失败，请重试', icon: 'none' });
     store.goTo('styleSelect');
   }
 };
 
-// Result actions
-const handleSaveHD = async () => {
-  if (!store.hasPaid) {
-    uni.showLoading({ title: '解锁中...' });
-    const res = await petAIService.processPayment();
-    uni.hideLoading();
-    if (res.success) {
-      store.hasPaid = true;
-      uni.showToast({ title: '解锁成功！已保存', icon: 'success' });
-    }
-  } else {
-    uni.showToast({ title: '已保存到相册', icon: 'success' });
-  }
-};
-
-const handleShare = () => {
-  uni.showToast({ title: '已复制分享链接', icon: 'success' });
-};
-
 const handleReset = () => {
+  stopPolling();
   store.reset();
 };
+
+// 小程序分享配置 - 分享给朋友
+onShareAppMessage(() => {
+  return {
+    title: 'AI萌宠换脸秀 - 让你的宠物变身艺术大片！',
+    path: '/pages/index/index',
+    imageUrl: store.resultImage || undefined,
+  };
+});
+
+// 小程序分享配置 - 分享到朋友圈
+onShareTimeline(() => {
+  return {
+    title: 'AI萌宠换脸秀 - 让你的宠物变身艺术大片！',
+    query: '',
+    imageUrl: store.resultImage || undefined,
+  };
+});
 </script>
 
 <style lang="scss">
