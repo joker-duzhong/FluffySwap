@@ -15,8 +15,8 @@ export interface PointsRecord {
   timestamp: number;
 }
 
-/** 基础 token 换算单位：2000 token = 1 点 */
-export const TOKENS_PER_POINT = 2000;
+/** 基础 token 换算单位：1000 token = 1 点 */
+export const TOKENS_PER_POINT = 1000;
 
 /** 每日签到赠送点数 */
 export const DAILY_SIGN_IN_BONUS = 10;

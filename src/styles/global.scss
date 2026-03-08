@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Global Box Sizing ===== */
+/* 小程序不支持 * 通配符，需要列出常用元素 */
+view, text, button, image, scroll-view,
+input, textarea, checkbox, radio, switch,
+slider, progress, form, label, picker,
+picker-view, swiper, swiper-item, movable-view,
+cover-view, cover-image, map, video, audio,
+camera, live-player, live-pusher, canvas, ad,
+official-account, open-data, web-view,
+::before, ::after {
+  box-sizing: border-box;
+}
 
 /* ===== Design System: AI萌宠换脸秀 ===== */
 page {

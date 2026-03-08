@@ -56,7 +56,9 @@ let currentHistoryId: string | null = null;
 let pollingTimer: number | null = null;
 
 /** 开始轮询任务 */
-const startPolling = (taskId: string, historyId: string, originalImage: string) => {
+const startPolling = (taskId: string, historyId: string, originalImage: string, cost: number) => {
+  // 先停止之前的轮询，避免重复
+  stopPolling();
   currentHistoryId = historyId;
 
   const poll = async () => {
@@ -77,11 +79,12 @@ const startPolling = (taskId: string, historyId: string, originalImage: string) 
         clearInterval(pollingTimer);
         pollingTimer = null;
       }
-    } else if (result.status === 'failed' || result.status === 'no_image') {
-      // 任务失败
-      historyService.update(historyId, { isProcessing: false });
+    } else if (result.status === 'failed' || result.status === 'no_image' || result.status === 'error') {
+      // 任务失败，退还点数并删除历史记录
+      pointsService.add(cost, '生成失败退还');
+      historyService.remove(historyId);
       taskService.clearTask();
-      uni.showToast({ title: '生成失败，请重试', icon: 'none' });
+      uni.showToast({ title: `生成失败，${cost}点已退回`, icon: 'none', duration: 2500 });
       store.goTo('styleSelect');
 
       if (pollingTimer) {
@@ -121,8 +124,10 @@ const handleHistorySelect = (data: { historyId: string }) => {
     } as StyleItem;
     store.goTo('loading');
 
-    // 开始轮询
-    startPolling(record.taskId, record.id, record.originalImage);
+    // 开始轮询（恢复任务时使用当前模型cost，失败时退回）
+    const modelId = getSelectedModel();
+    const cost = getModelCost(modelId);
+    startPolling(record.taskId, record.id, record.originalImage, cost);
   } else {
     // 已完成的记录
     store.originalImage = record.originalImage;
@@ -168,8 +173,10 @@ const handleResumeTask = () => {
   } as StyleItem;
   store.goTo('loading');
 
-  // 开始轮询
-  startPolling(task.taskId, record.id, task.originalImage);
+  // 开始轮询（恢复任务时使用当前模型cost，失败时退回）
+  const modelId = getSelectedModel();
+  const cost = getModelCost(modelId);
+  startPolling(task.taskId, record.id, task.originalImage, cost);
 };
 
 onMounted(() => {
@@ -260,7 +267,7 @@ const handleGenerate = async () => {
     });
 
     // 开始轮询
-    startPolling(submitResult.taskId, historyRecord.id, imageUrl);
+    startPolling(submitResult.taskId, historyRecord.id, imageUrl, cost);
 
   } catch (e) {
     console.error('Generate error:', e);

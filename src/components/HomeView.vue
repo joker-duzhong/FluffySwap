@@ -25,7 +25,7 @@
     <view class="flex-1 flex flex-col z-10 w-full h-full">
 
       <!-- Logo/Title Area -->
-      <view class="pt-4"></view>
+      <view class="pt-10"></view>
       <view class="pt-20 pb-4 flex flex-col items-center shrink-0">
         <view class="flex items-center gap-2 mb-2">
           <text class="text-white font-black tracking-widest text-sm italic">FLUFFY</text>

@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 const goHome = () => {
-  uni.navigateTo({ url: '/pages/index/index' });
+  uni.reLaunch({ url: '/pages/index/index' });
 };
 </script>
 

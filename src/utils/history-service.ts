@@ -117,6 +117,19 @@ export class HistoryService {
     this.persist();
   }
 
+  /** 清理失败的记录（没有结果图且不在处理中） */
+  clearFailedRecords(): number {
+    const before = this.storage.records.length;
+    this.storage.records = this.storage.records.filter(r =>
+      r.isProcessing || r.resultImage // 保留处理中的和有结果图的
+    );
+    const removed = before - this.storage.records.length;
+    if (removed > 0) {
+      this.persist();
+    }
+    return removed;
+  }
+
   /** 获取记录数量 */
   getCount(): number {
     return this.storage.records.length;
