@@ -32,7 +32,7 @@ export const MODEL_LIST: ModelOption[] = [
 ];
 
 // 默认模型
-export const DEFAULT_MODEL = 'grok-imagine-image';
+export const DEFAULT_MODEL = 'Nano-Banana';
 
 /**
  * 计算模型消耗的点数（token -> 点数）

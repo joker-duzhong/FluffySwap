@@ -11,6 +11,7 @@ export const usePetStore = defineStore('pet', {
     currentStep: 'home' as AppStep,
     originalImage: null as string | null,
     selectedStyle: null as StyleItem | null,
+    gender: '' as string, // 性别：'male' | 'female' | ''
     customPrompt: '',
     isProcessing: false,
     resultImage: null as string | null,
@@ -26,9 +27,16 @@ export const usePetStore = defineStore('pet', {
     selectStyle(style: StyleItem) {
       this.selectedStyle = style;
     },
+    setGender(gender: string) {
+      this.gender = gender;
+    },
+    setCustomPrompt(prompt: string) {
+      this.customPrompt = prompt;
+    },
     reset() {
       this.originalImage = null;
       this.selectedStyle = null;
+      this.gender = '';
       this.customPrompt = '';
       this.isProcessing = false;
       this.resultImage = null;

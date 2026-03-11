@@ -8,8 +8,17 @@
 
     <!-- ========== State 2: Style Select ========== -->
     <view v-else-if="store.currentStep === 'styleSelect'">
-      <StyleSelectView :styles="styleList" :selectedId="store.selectedStyle?.id ?? null" @select="onStyleSelect"
-        @confirm="handleGenerate" @back="store.goTo('home')" />
+      <StyleSelectView
+        :styles="styleList"
+        :selectedId="store.selectedStyle?.id ?? null"
+        :gender="store.gender"
+        :customPromptText="store.customPrompt"
+        @select="onStyleSelect"
+        @updateGender="onGenderUpdate"
+        @updateCustomPrompt="onCustomPromptUpdate"
+        @confirm="handleGenerate"
+        @back="store.goTo('home')"
+      />
     </view>
 
     <!-- ========== State 3: Loading ========== -->
@@ -203,6 +212,14 @@ const onStyleSelect = (style: StyleItem) => {
   store.selectStyle(style);
 };
 
+const onGenderUpdate = (gender: string) => {
+  store.setGender(gender);
+};
+
+const onCustomPromptUpdate = (prompt: string) => {
+  store.setCustomPrompt(prompt);
+};
+
 // Generation
 const handleGenerate = async () => {
   if (!store.originalImage || !store.selectedStyle) return;
@@ -235,7 +252,12 @@ const handleGenerate = async () => {
     const imageUrl = await ensureOnlineUrl(store.originalImage);
 
     // 提交任务
-    const submitResult = await petAIService.submitTask(imageUrl, store.selectedStyle);
+    const submitResult = await petAIService.submitTask(
+      imageUrl,
+      store.selectedStyle,
+      store.gender,
+      store.customPrompt
+    );
 
     if (!submitResult.success || !submitResult.taskId) {
       // 任务提交失败，退还点数

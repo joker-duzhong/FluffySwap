@@ -16,8 +16,8 @@
         <text class="text-base">✨</text>
         <text class="text-white font-bold text-sm">{{ pointsBalance }}</text>
         <text class="text-white/60 text-xs">点</text>
-        <text class="text-white/40 text-xs ml-1">|</text>
-        <text class="text-base">⚙️</text>
+        <!-- <text class="text-white/40 text-xs ml-1">|</text>
+        <text class="text-base">⚙️</text> -->
       </view>
     </view>
 
@@ -50,7 +50,7 @@
         </view>
 
         <view class="mt-6 text-center px-10">
-          <text class="text-white font-bold text-3xl mb-2 block">AI 萌宠换脸秀</text>
+          <text class="text-white font-bold text-3xl mb-2 block">AI 萌宠变身秀</text>
           <text class="text-white/80 text-base font-light block">Magic Portrait for Pets</text>
           <text class="text-white/60 text-sm mt-3 block leading-relaxed px-2">
             一键生成多种艺术风格，让你的爱宠变身超萌主角！
@@ -184,8 +184,9 @@ const handleTopLeftTap = () => {
     // 可签到时，先签到
     doSignIn();
   } else {
+    uni.showToast({ title: '今日已签到', icon: 'none' });
     // 已签到，打开模型选择弹窗
-    showModelPopup.value = true;
+    // showModelPopup.value = true;
   }
 };
 

@@ -25,7 +25,7 @@ export const petAIService = {
   /**
    * 提交生成任务，返回 task_id
    */
-  async submitTask(sourceImage: string, style: any): Promise<SubmitResult> {
+  async submitTask(sourceImage: string, style: any, gender?: string, customPrompt?: string): Promise<SubmitResult> {
     const modelName = getSelectedModel();
     console.log('Submitting task with model:', modelName, 'style:', style.name);
 
@@ -35,7 +35,22 @@ export const petAIService = {
     }
 
     try {
-      const promptText = style.prompt || `A cute pet in ${style.name} style`;
+      let promptText = style.prompt || `A cute pet in ${style.name} style`;
+
+      // 拼接性别和自定义描述
+      if (gender || customPrompt) {
+        const additions: string[] = [];
+        if (gender) {
+          const genderText = gender === 'male' ? 'male' : 'female';
+          additions.push(`human gender: ${genderText}`);
+        }
+        if (customPrompt && customPrompt.trim()) {
+          additions.push(customPrompt.trim());
+        }
+        if (additions.length > 0) {
+          promptText = `${promptText}, ${additions.join(', ')}`;
+        }
+      }
 
       const payload: any = {
         model: modelName,
