@@ -78,8 +78,9 @@
           :class="!store.originalImage ? 'opacity-80 grayscale pointer-events-none' : ''" @tap="$emit('next')">
           立即开始
         </button>
+        <!-- 以上内容均由AI生成, 仅供参考和借鉴 -->
+         <view class="text-white/60 text-xs text-center">以上内容均由AI生成, 仅供参考和借鉴</view>
       </view>
-
     </view>
 
     <!-- Model Selection Popup -->
