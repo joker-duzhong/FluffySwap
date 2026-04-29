@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.lxyy.fun)",
+      "Bash(curl -s \"https://api.lxyy.fun/docs\")",
+      "Bash(curl -s \"https://api.lxyy.fun/api/v1/openapi.json\")",
+      "Bash(python -m json.tool)",
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); schemas=data['components']['schemas']; print\\(json.dumps\\({k:v for k,v in schemas.items\\(\\) if 'Miniapp' in k or k in ['Token','UserResponse']}, indent=2, ensure_ascii=False\\)\\)\")"
+    ]
+  }
+}

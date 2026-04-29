@@ -75,7 +75,7 @@
 
         <button
           class="bg-[#EBEAEC] w-full h-16 rounded-[38px] font-semibold text-sm tracking-widest text-brand-primary shadow-2xl active:scale-95 transition-all flex items-center justify-center border-none"
-          :class="!store.originalImage ? 'opacity-80 grayscale pointer-events-none' : ''" @tap="$emit('next')">
+          :class="!store.originalImage ? 'opacity-80 grayscale pointer-events-none' : ''" @tap="handleStart">
           立即开始
         </button>
         <!-- 以上内容均由AI生成, 仅供参考和借鉴 -->
@@ -147,6 +147,7 @@
 import { ref, computed, onMounted } from 'vue';
 import ImageUploader from '@/components/ImageUploader.vue';
 import { usePetStore } from '@/stores/petStore';
+import { useUserStore } from '@/stores/userStore';
 import { historyService } from '@/utils/history-service';
 import { getSelectedModel, setSelectedModel } from '@/utils/model-service';
 import { MODEL_LIST, getModelCostText } from '@/config/models';
@@ -154,7 +155,8 @@ import { taskService } from '@/utils/task-service';
 import { pointsService } from '@/utils/points-service';
 
 const store = usePetStore();
-defineEmits(['next']);
+const userStore = useUserStore();
+const emit = defineEmits(['next']);
 
 const historyCount = ref(0);
 const showModelPopup = ref(false);
@@ -302,6 +304,20 @@ const selectModel = (modelId: string) => {
   setSelectedModel(modelId);
   showModelPopup.value = false;
   uni.showToast({ title: '已切换模型', icon: 'success', duration: 1500 });
+};
+
+const handleStart = () => {
+  if (!store.originalImage) {
+    uni.showToast({ title: '请先上传宠物照片', icon: 'none' });
+    return;
+  }
+
+  if (!userStore.hasPhone) {
+    uni.navigateTo({ url: '/pages/login/login' });
+    return;
+  }
+
+  emit('next');
 };
 </script>
 

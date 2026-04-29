@@ -44,7 +44,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ResultView from '@/components/ResultView.vue';
 import { usePetStore } from '@/stores/petStore';
 import type { StyleItem } from '@/stores/petStore';
-import { petAIService } from '@/services/petAIService';
+import { petAIService } from '@/api/ai';
 import { prompts } from '@/config/prompt';
 import { ensureOnlineUrl } from '@/utils/qiniu-upload';
 import { historyService } from '@/utils/history-service';
@@ -252,12 +252,12 @@ const handleGenerate = async () => {
     const imageUrl = await ensureOnlineUrl(store.originalImage);
 
     // 提交任务
-    const submitResult = await petAIService.submitTask(
-      imageUrl,
-      store.selectedStyle,
-      store.gender,
-      store.customPrompt
-    );
+    const submitResult = await petAIService.submitTask({
+      sourceImage: imageUrl,
+      style: store.selectedStyle,
+      gender: store.gender,
+      customPrompt: store.customPrompt
+    });
 
     if (!submitResult.success || !submitResult.taskId) {
       // 任务提交失败，退还点数

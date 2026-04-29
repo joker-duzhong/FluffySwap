@@ -13,6 +13,13 @@
 				"navigationBarTitleText": "我的作品",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

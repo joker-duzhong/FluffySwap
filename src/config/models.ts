@@ -29,10 +29,11 @@ export const MODEL_LIST: ModelOption[] = [
   { id: 'recraftv3', name: 'Recraft v3', tokenCost: 200 },
   { id: 'removebackground', name: 'Remove BG', tokenCost: 200 },
   { id: 'topazlabs', name: 'Topaz Labs', tokenCost: 200 },
+  { id: 'gpt-image-2', name: 'GPT-Image-2', tokenCost: 2000 },
 ];
 
 // 默认模型
-export const DEFAULT_MODEL = 'Nano-Banana';
+export const DEFAULT_MODEL = 'gpt-image-2';
 
 /**
  * 计算模型消耗的点数（token -> 点数）
