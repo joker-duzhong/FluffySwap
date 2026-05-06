@@ -5,7 +5,12 @@
       "Bash(curl -s \"https://api.lxyy.fun/docs\")",
       "Bash(curl -s \"https://api.lxyy.fun/api/v1/openapi.json\")",
       "Bash(python -m json.tool)",
-      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); schemas=data['components']['schemas']; print\\(json.dumps\\({k:v for k,v in schemas.items\\(\\) if 'Miniapp' in k or k in ['Token','UserResponse']}, indent=2, ensure_ascii=False\\)\\)\")"
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); schemas=data['components']['schemas']; print\\(json.dumps\\({k:v for k,v in schemas.items\\(\\) if 'Miniapp' in k or k in ['Token','UserResponse']}, indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npx @hey-api/openapi-ts -i http://localhost:8000/api/v1/openapi.json -o src/lib/client --services.include \"^\\(用户授权|资源存储|小程序登录|AuraKey AI 绘画\\)\")",
+      "Bash(npx @hey-api/openapi-ts -i http://localhost:8000/api/v1/openapi.json -o src/lib/client)",
+      "Bash(npm run:*)",
+      "Bash(mv static/default-avatar-temp.png static/default-avatar.png)"
     ]
   }
 }

@@ -1,0 +1,2 @@
+This is a placeholder. Please replace with actual PNG image.
+For now, we'll create a simple SVG that can be converted to PNG.
