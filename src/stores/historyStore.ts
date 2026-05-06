@@ -9,6 +9,8 @@ export interface HistoryItem {
   prompt: string
   status: string
   cost: number
+  model_name?: string
+  aspect_ratio?: string
   created_at?: string
 }
 

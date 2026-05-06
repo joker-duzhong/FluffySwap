@@ -54,7 +54,6 @@
     "@dcloudio/uni-mp-xhs": "3.0.0-4080420251103001",
     "@dcloudio/uni-quickapp-webview": "3.0.0-4080420251103001",
     "pinia": "^3.0.4",
-    "qiniu-js": "^3.4.3",
     "vue": "^3.4.21",
     "vue-i18n": "^9.1.9",
     "vue-router": "^5.0.3"

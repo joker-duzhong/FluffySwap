@@ -6,9 +6,10 @@ import { STORAGE_KEYS } from '@/config'
 
 export interface UserProfile {
   user_id: string
-  nickname: string
-  avatar: string
+  nickname?: string | null
+  avatar?: string | null
   phone?: string
+  openid?: string | null
   balance: number
   is_vip: boolean
   type: string
@@ -33,8 +34,14 @@ export const useAuthStore = defineStore('auth', {
       uni.setStorageSync(STORAGE_KEYS.TOKEN, token)
     },
     setUserProfile(profile: UserProfile) {
-      this.userProfile = profile
-      uni.setStorageSync(STORAGE_KEYS.USER_INFO, profile)
+      const normalizedProfile = {
+        ...profile,
+        nickname: profile.nickname || 'AI 魔法师',
+        avatar: profile.avatar || '/static/default-avatar.png',
+        type: profile.type || '普通会员',
+      }
+      this.userProfile = normalizedProfile
+      uni.setStorageSync(STORAGE_KEYS.USER_INFO, normalizedProfile)
     },
     clearAuth() {
       this.token = ''

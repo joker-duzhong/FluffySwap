@@ -1,54 +1,40 @@
 <template>
   <view class="container">
-    <!-- 发现页 -->
     <DiscoverView v-show="currentTab === 'discover'" />
-
-    <!-- 创作页（实际上是个空页面，点击中间按钮弹出创作面板） -->
-    <view v-show="currentTab === 'create'" class="empty-create">
-      <text class="tip">点击下方创作按钮开始创作</text>
-    </view>
-
-    <!-- 我的页 -->
+    <DiscoverView v-show="currentTab === 'create'" />
+    <WorksView v-show="currentTab === 'works'" />
     <ProfileView v-show="currentTab === 'profile'" />
 
-    <!-- 创作面板（毛玻璃抽屉） -->
     <CreatePanel v-if="isCreating" @close="hideCreatePanel" />
 
-    <!-- 底部导航栏 -->
     <view class="custom-tabbar">
       <view
+        v-for="tab in tabItems"
+        :key="tab.name"
         class="tab-item"
-        :class="{ active: currentTab === 'discover' }"
-        @click="switchTab('discover')"
+        :class="{ active: currentTab === tab.name, 'tab-create': tab.name === 'create' }"
+        @click="handleTabClick(tab.name)"
       >
-        <view class="tab-icon">🔍</view>
-        <text class="tab-text">发现</text>
-      </view>
-
-      <view class="tab-item tab-create" @click="showCreatePanel">
-        <view class="create-btn">
-          <text class="create-icon">✨</text>
+        <view v-if="tab.name === 'create'" class="create-btn">
+          <AuraIcon name="create" :size="58" glow />
         </view>
-        <text class="tab-text">创作</text>
-      </view>
-
-      <view
-        class="tab-item"
-        :class="{ active: currentTab === 'profile' }"
-        @click="switchTab('profile')"
-      >
-        <view class="tab-icon">👤</view>
-        <text class="tab-text">我的</text>
+        <view v-else class="icon-wrap">
+          <AuraIcon :name="tab.icon" :size="44" :glow="currentTab === tab.name" />
+        </view>
+        <text class="tab-text">{{ tab.label }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useAppStore } from '@/stores/appStore'
+import { computed, onMounted } from 'vue'
+import AuraIcon from '@/components/AuraIcon.vue'
+import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
+import type { AuraIconName } from '@/config/icons'
 import DiscoverView from './components/DiscoverView.vue'
+import WorksView from './components/WorksView.vue'
 import ProfileView from './components/ProfileView.vue'
 import CreatePanel from './components/CreatePanel.vue'
 
@@ -58,12 +44,27 @@ const authStore = useAuthStore()
 const currentTab = computed(() => appStore.currentTab)
 const isCreating = computed(() => appStore.isCreating)
 
-const switchTab = (tab: 'discover' | 'create' | 'profile') => {
+const tabItems: Array<{ name: TabName; label: string; icon: AuraIconName }> = [
+  { name: 'discover', label: '发现', icon: 'discover' },
+  { name: 'create', label: '创作', icon: 'create' },
+  { name: 'works', label: '作品', icon: 'works' },
+  { name: 'profile', label: '我的', icon: 'profile' },
+]
+
+const switchTab = (tab: TabName) => {
   appStore.setTab(tab)
 }
 
+const handleTabClick = (tab: TabName) => {
+  if (tab === 'create') {
+    switchTab('create')
+    showCreatePanel()
+    return
+  }
+  switchTab(tab)
+}
+
 const showCreatePanel = () => {
-  // 检查登录状态
   if (!authStore.isLoggedIn) {
     uni.showToast({ title: '请先登录', icon: 'none' })
     uni.navigateTo({ url: '/pages/login/login' })
@@ -87,19 +88,7 @@ onMounted(() => {
   width: 100%;
   min-height: 100vh;
   background: #0A0A0A;
-  padding-bottom: 120rpx;
-}
-
-.empty-create {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-
-  .tip {
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 28rpx;
-  }
+  padding-bottom: 138rpx;
 }
 
 .custom-tabbar {
@@ -107,15 +96,16 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 120rpx;
-  background: rgba(18, 18, 18, 0.95);
-  backdrop-filter: blur(20rpx);
+  min-height: 124rpx;
+  background: rgba(20, 22, 29, 0.82);
+  backdrop-filter: blur(32rpx);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1rpx solid rgba(255, 255, 255, 0.05);
+  padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid rgba(255, 255, 255, 0.08);
   z-index: 1000;
+  box-shadow: 0 -18rpx 50rpx rgba(0, 0, 0, 0.35);
 
   .tab-item {
     flex: 1;
@@ -123,49 +113,49 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8rpx;
+    gap: 9rpx;
 
-    .tab-icon {
-      font-size: 44rpx;
+    .icon-wrap {
       opacity: 0.6;
-      transition: all 0.3s;
+      transform: translateY(0);
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
     .tab-text {
-      font-size: 20rpx;
+      font-size: 21rpx;
       color: rgba(255, 255, 255, 0.6);
       transition: all 0.3s;
     }
 
     &.active {
-      .tab-icon {
+      .icon-wrap {
         opacity: 1;
+        transform: translateY(-2rpx);
       }
 
       .tab-text {
-        color: #00D4FF;
+        color: #DFF4FF;
       }
     }
   }
 
   .tab-create {
+    transform: translateY(-12rpx);
+
     .create-btn {
-      width: 96rpx;
-      height: 96rpx;
-      border-radius: 48rpx;
-      background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
+      width: 104rpx;
+      height: 104rpx;
+      border-radius: 52rpx;
+      background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.3), transparent 34%),
+        linear-gradient(135deg, #14B8FF 0%, #8B5CF6 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8rpx 24rpx rgba(0, 212, 255, 0.3);
-
-      .create-icon {
-        font-size: 48rpx;
-      }
+      box-shadow: 0 0 0 8rpx rgba(255, 255, 255, 0.06), 0 14rpx 36rpx rgba(20, 184, 255, 0.34);
     }
 
     .tab-text {
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.78);
     }
   }
 }

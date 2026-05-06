@@ -8,7 +8,7 @@
 
       <!-- 关闭按钮 -->
       <view class="close-btn" @click="$emit('close')">
-        <text>✕</text>
+        <AuraIcon name="close" :size="34" />
       </view>
 
       <!-- 标题 -->
@@ -16,7 +16,7 @@
         <text class="title">创作台</text>
         <view class="balance">
           <text class="label">我的算力：</text>
-          <text class="value">⚡ {{ balance }}</text>
+          <text class="value">{{ balance }}</text>
         </view>
       </view>
 
@@ -32,13 +32,16 @@
         <view class="input-footer">
           <text class="char-count">{{ prompt.length }}/1000</text>
           <view class="actions">
-            <!-- 魔法棒（AI润色） -->
-            <view class="action-btn magic" @click="handleMagic">
-              <text>✨ 魔法棒</text>
+            <view class="action-btn" @click="clearPrompt">
+              <text>清空</text>
             </view>
-            <!-- 语音输入 -->
-            <view class="action-btn voice" @click="handleVoice">
-              <text>🎤 按住说话</text>
+            <view class="action-btn magic" @click="handleMagic">
+              <AuraIcon name="wand" :size="28" />
+              <text>魔法棒</text>
+            </view>
+            <view class="action-btn voice" @click="showVoiceInput = true">
+              <AuraIcon name="mic" :size="28" />
+              <text>语音</text>
             </view>
           </view>
         </view>
@@ -65,8 +68,11 @@
       <view class="param-section">
         <text class="param-label">模型选择</text>
         <view class="model-select" @click="showModelPicker = true">
-          <text class="model-name">{{ selectedModelName }}</text>
-          <text class="arrow">›</text>
+          <view class="model-left">
+            <text class="model-name">{{ selectedModelName }}</text>
+            <text v-if="selectedModelCost" class="model-cost">耗 {{ selectedModelCost }} 算力/次</text>
+          </view>
+          <text class="arrow">⌄</text>
         </view>
       </view>
 
@@ -78,7 +84,8 @@
           :disabled="!canGenerate"
           @click="handleGenerate"
         >
-          <text class="btn-text">🪄 开始创作 (耗 {{ cost }} 算力)</text>
+          <AuraIcon name="wand" :size="34" />
+          <text class="btn-text">开始创作 (耗 {{ cost }} 算力)</text>
         </button>
       </view>
 
@@ -87,7 +94,9 @@
         <view class="picker-panel" @click.stop>
           <view class="picker-header">
             <text class="picker-title">选择模型</text>
-            <text class="picker-close" @click="showModelPicker = false">✕</text>
+            <view class="picker-close" @click="showModelPicker = false">
+              <AuraIcon name="close" :size="34" />
+            </view>
           </view>
           <view class="model-list">
             <view
@@ -106,16 +115,24 @@
           </view>
         </view>
       </view>
+
+      <VoiceInputSheet
+        v-if="showVoiceInput"
+        @close="showVoiceInput = false"
+        @finished="handleVoiceFinished"
+      />
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import AuraIcon from '@/components/AuraIcon.vue'
 import { useTaskStore } from '@/stores/taskStore'
 import { useAuthStore } from '@/stores/authStore'
 import { ASPECT_RATIOS } from '@/config'
 import { client } from '@/services/uniClient'
+import VoiceInputSheet from './VoiceInputSheet.vue'
 
 const emit = defineEmits(['close'])
 
@@ -134,6 +151,7 @@ const balance = computed(() => authStore.balance)
 
 const aspectRatios = ASPECT_RATIOS
 const showModelPicker = ref(false)
+const showVoiceInput = ref(false)
 
 const models = computed(() => taskStore.options?.models || [])
 const selectedModelName = computed(() => {
@@ -145,6 +163,7 @@ const cost = computed(() => {
   const model = models.value.find((m) => m.model_id === selectedModel.value)
   return model?.cost || 0
 })
+const selectedModelCost = computed(() => cost.value)
 
 const selectRatio = (ratio: string) => {
   taskStore.setRatio(ratio)
@@ -155,16 +174,44 @@ const selectModel = (modelId: string) => {
   showModelPicker.value = false
 }
 
-const handleMagic = () => {
-  uni.showToast({ title: 'AI润色功能即将上线', icon: 'none' })
+const clearPrompt = () => {
+  taskStore.setPrompt('')
 }
 
-const handleVoice = () => {
-  uni.showToast({ title: '语音输入功能即将上线', icon: 'none' })
+const handleMagic = () => {
+  const rawPrompt = prompt.value.trim()
+  if (!rawPrompt) {
+    uni.showToast({ title: '先输入一点画面描述', icon: 'none' })
+    return
+  }
+
+  const polishedPrompt = [
+    rawPrompt,
+    'masterpiece, best quality, cinematic lighting, ultra high resolution',
+    'delicate details, rich texture, coherent composition, atmospheric depth',
+  ].join(', ')
+
+  taskStore.setPrompt(polishedPrompt.slice(0, 1000))
+  uni.showToast({ title: '已先用本地模板润色', icon: 'success' })
+}
+
+const handleVoiceFinished = (text: string) => {
+  showVoiceInput.value = false
+  if (text) {
+    taskStore.setPrompt(`${prompt.value}${prompt.value ? '，' : ''}${text}`)
+  }
 }
 
 const handleGenerate = async () => {
-  if (!canGenerate.value) return
+  if (!prompt.value.trim()) {
+    uni.showToast({ title: '请输入画面描述', icon: 'none' })
+    return
+  }
+
+  if (!selectedModel.value) {
+    uni.showToast({ title: '请选择模型', icon: 'none' })
+    return
+  }
 
   // 检查算力
   if (balance.value < cost.value) {
@@ -185,7 +232,7 @@ const handleGenerate = async () => {
 
     const res = await client.POST('/aurakey/task/generate', {
       body: {
-        prompt: prompt.value,
+        prompt: prompt.value.trim(),
         model_name: selectedModel.value,
         aspect_ratio: selectedRatio.value,
       },
@@ -221,6 +268,13 @@ const loadOptions = async () => {
     const res = await client.GET('/aurakey/task/options')
     if (res.data?.code === 200 && res.data.data) {
       taskStore.setOptions(res.data.data)
+      const supportedRatios = res.data.data.aspect_ratios || []
+      if (supportedRatios.length > 0) {
+        const firstSupported = aspectRatios.find((ratio) => supportedRatios.includes(ratio.value))
+        if (firstSupported && !supportedRatios.includes(selectedRatio.value)) {
+          taskStore.setRatio(firstSupported.value)
+        }
+      }
     }
   } catch (error) {
     console.error('加载选项失败:', error)
@@ -247,14 +301,16 @@ onMounted(() => {
 
 .create-panel {
   width: 100%;
-  max-height: 70vh;
-  background: rgba(18, 18, 18, 0.98);
+  max-height: 74vh;
+  overflow-y: auto;
+  background: rgba(24, 26, 34, 0.94);
   backdrop-filter: blur(40rpx);
   border-radius: 32rpx 32rpx 0 0;
-  padding: 32rpx;
+  padding: 32rpx 32rpx 28rpx;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
   position: relative;
   animation: slideUp 0.3s ease-out;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.12);
 }
 
 @keyframes slideUp {
@@ -291,8 +347,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  color: rgba(255, 255, 255, 0.6);
 }
 
 .panel-header {
@@ -358,11 +412,14 @@ onMounted(() => {
       gap: 16rpx;
 
       .action-btn {
-        padding: 12rpx 24rpx;
+        padding: 12rpx 18rpx;
         border-radius: 24rpx;
         font-size: 24rpx;
         background: rgba(255, 255, 255, 0.08);
         color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        gap: 8rpx;
 
         &.magic {
           background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(181, 55, 255, 0.2) 100%);
@@ -399,8 +456,8 @@ onMounted(() => {
       transition: all 0.3s;
 
       &.active {
-        border-color: #00D4FF;
-        background: rgba(0, 212, 255, 0.1);
+        border-color: #36C5FF;
+        background: linear-gradient(135deg, rgba(20, 184, 255, 0.16), rgba(139, 92, 246, 0.16));
       }
 
       .ratio-icon {
@@ -422,9 +479,20 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
 
-    .model-name {
-      font-size: 28rpx;
-      color: #fff;
+    .model-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8rpx;
+
+      .model-name {
+        font-size: 28rpx;
+        color: #fff;
+      }
+
+      .model-cost {
+        font-size: 22rpx;
+        color: rgba(255, 255, 255, 0.42);
+      }
     }
 
     .arrow {
@@ -444,10 +512,11 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 12rpx;
     box-shadow: 0 8rpx 24rpx rgba(0, 212, 255, 0.3);
 
     .btn-text {
-      font-size: 32rpx;
+      font-size: 30rpx;
       font-weight: 500;
       color: #fff;
     }
@@ -493,8 +562,13 @@ onMounted(() => {
     }
 
     .picker-close {
-      font-size: 32rpx;
-      color: rgba(255, 255, 255, 0.6);
+      width: 56rpx;
+      height: 56rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
     }
   }
 

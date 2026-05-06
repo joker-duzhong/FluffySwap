@@ -1,7 +1,7 @@
 {
-    "name" : "",
-    "appid" : "",
-    "description" : "",
+    "name" : "AuraKey AI 魔法师",
+    "appid" : "wxb26e7039ef603dca",
+    "description" : "AuraKey AI 绘画小程序",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,

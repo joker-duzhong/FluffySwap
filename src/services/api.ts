@@ -18,7 +18,8 @@ export const configureClient = () => {
   // 请求拦截器：添加 token
   client.interceptors.request.use((config) => {
     const token = uni.getStorageSync(STORAGE_KEYS.TOKEN)
-    if (token && config.headers) {
+    if (token) {
+      config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -31,7 +32,7 @@ export const configureClient = () => {
     },
     (error) => {
       // 401 未授权，清除 token 并跳转登录
-      if (error.response?.status === 401) {
+      if (error.response?.statusCode === 401 || error.response?.status === 401) {
         uni.removeStorageSync(STORAGE_KEYS.TOKEN)
         uni.removeStorageSync(STORAGE_KEYS.USER_INFO)
         uni.showToast({ title: '登录已过期', icon: 'none' })

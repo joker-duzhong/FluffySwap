@@ -9,8 +9,8 @@ export interface GalleryItem {
   aspect_ratio: string
   author: {
     user_id: string
-    nickname: string
-    avatar: string
+    nickname?: string | null
+    avatar?: string | null
   }
   like_count: number
   is_liked: boolean

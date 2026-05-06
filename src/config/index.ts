@@ -13,7 +13,7 @@ export const API_CONFIG = {
 
 // 微信小程序配置
 export const WECHAT_CONFIG = {
-  APPID: 'your_wechat_appid', // TODO: 替换为实际的小程序 appid
+  APPID: 'wxb26e7039ef603dca',
 }
 
 // 存储 key 配置

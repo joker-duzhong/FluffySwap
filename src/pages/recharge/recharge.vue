@@ -95,7 +95,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
-import { WECHAT_CONFIG } from '@/config'
 import { client } from '@/services/uniClient'
 
 interface Product {
@@ -112,6 +111,7 @@ interface Product {
 const authStore = useAuthStore()
 
 const balance = computed(() => authStore.balance)
+const openid = computed(() => authStore.userProfile?.openid || '')
 const products = ref<Product[]>([])
 const selectedProduct = ref<Product | null>(null)
 
@@ -130,19 +130,25 @@ const handlePay = async () => {
   if (!selectedProduct.value) return
 
   try {
-    // 1. 获取 openid
-    const openid = await getOpenId()
-    if (!openid) {
-      uni.showToast({ title: '获取用户信息失败', icon: 'none' })
+    if (!openid.value) {
+      uni.showModal({
+        title: '缺少支付信息',
+        content: '当前账号资料中缺少 openid，请重新登录后再支付。',
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({ url: '/pages/login/login' })
+          }
+        },
+      })
       return
     }
 
-    // 2. 创建订单
     uni.showLoading({ title: '正在创建订单...' })
     const orderRes = await client.POST('/aurakey/order/create', {
       body: {
         product_id: selectedProduct.value.id,
-        openid,
+        openid: openid.value,
       },
     })
 
@@ -160,7 +166,7 @@ const handlePay = async () => {
         // 支付成功，轮询订单状态
         checkOrderStatus(order_no)
       },
-      fail: (err) => {
+      fail: (err: UniApp.GeneralCallbackResult) => {
         if (err.errMsg.includes('cancel')) {
           uni.showToast({ title: '支付已取消', icon: 'none' })
         } else {
@@ -173,24 +179,6 @@ const handlePay = async () => {
     console.error('支付失败:', error)
     uni.showToast({ title: error.message || '支付失败', icon: 'none' })
   }
-}
-
-const getOpenId = async (): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    uni.login({
-      provider: 'weixin',
-      success: async (loginRes) => {
-        try {
-          // 这里应该调用后端接口换取 openid
-          // 暂时返回空字符串，实际需要实现
-          resolve('')
-        } catch (error) {
-          reject(error)
-        }
-      },
-      fail: reject,
-    })
-  })
 }
 
 const checkOrderStatus = async (orderNo: string) => {

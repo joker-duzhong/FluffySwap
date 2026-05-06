@@ -5,7 +5,7 @@
 
 interface RequestConfig {
   url: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD'
   data?: any
   params?: Record<string, any>
   headers?: Record<string, string>
@@ -80,8 +80,25 @@ class UniClient {
           header: headers,
           timeout: 60000,
           success: (res) => {
+            if (res.statusCode >= 400) {
+              const error = {
+                response: res,
+                message: `HTTP ${res.statusCode}`,
+              }
+              if (this.responseInterceptor?.onRejected) {
+                try {
+                  reject(this.responseInterceptor.onRejected(error))
+                } catch (interceptorError) {
+                  reject(interceptorError)
+                }
+              } else {
+                reject(error)
+              }
+              return
+            }
+
             const response = {
-              data: res.data,
+              data: res.data as T,
               response: res,
             }
 
@@ -89,7 +106,7 @@ class UniClient {
             if (this.responseInterceptor?.onFulfilled) {
               try {
                 const interceptedResponse = this.responseInterceptor.onFulfilled(response)
-                resolve(interceptedResponse)
+                resolve(interceptedResponse as Response<T>)
               } catch (error) {
                 if (this.responseInterceptor?.onRejected) {
                   this.responseInterceptor.onRejected(error)
@@ -175,22 +192,6 @@ class UniClient {
     return this.request<T>({
       url: finalUrl,
       method: 'DELETE',
-    })
-  }
-
-  async PATCH<T = any>(url: string, options?: { body?: any; params?: { path?: Record<string, any> } }): Promise<Response<T>> {
-    // 处理路径参数
-    let finalUrl = url
-    if (options?.params?.path) {
-      Object.entries(options.params.path).forEach(([key, value]) => {
-        finalUrl = finalUrl.replace(`{${key}}`, String(value))
-      })
-    }
-
-    return this.request<T>({
-      url: finalUrl,
-      method: 'PATCH',
-      data: options?.body,
     })
   }
 }

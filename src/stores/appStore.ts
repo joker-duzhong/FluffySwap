@@ -3,7 +3,7 @@
  */
 import { defineStore } from 'pinia'
 
-export type TabName = 'discover' | 'create' | 'profile'
+export type TabName = 'discover' | 'create' | 'works' | 'profile'
 
 export const useAppStore = defineStore('app', {
   state: () => ({

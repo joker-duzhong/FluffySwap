@@ -8,7 +8,7 @@ export interface TaskOptions {
     model_id: string
     name: string
     cost: number
-    is_vip_only: boolean
+    is_vip_only?: boolean
   }>
   aspect_ratios: string[]
 }
@@ -60,11 +60,19 @@ export const useTaskStore = defineStore('task', {
     setRatio(ratio: string) {
       this.selectedRatio = ratio
     },
+    applyPreset(prompt: string, ratio?: string, modelId?: string) {
+      this.prompt = prompt
+      if (ratio) this.selectedRatio = ratio
+      if (modelId) this.selectedModel = modelId
+    },
     setOptions(options: TaskOptions) {
       this.options = options
       // 默认选择第一个模型
       if (options.models.length > 0 && !this.selectedModel) {
         this.selectedModel = options.models[0].model_id
+      }
+      if (options.aspect_ratios.length > 0 && !options.aspect_ratios.includes(this.selectedRatio)) {
+        this.selectedRatio = options.aspect_ratios[0]
       }
     },
     setCurrentTask(task: GenerateTask | null) {
