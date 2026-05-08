@@ -1,11 +1,10 @@
 <template>
   <view class="history-page">
-    <AppStatusBar />
-    <AppNavBar :title="selecting ? '我的作品' : '我的作品'" back @back="goBack">
+    <AppTopNav :title="selecting ? '我的作品' : '我的作品'" back @back="goBack">
       <template #right>
         <button class="manage-btn" @click="toggleSelect">{{ selecting ? '取消' : '管理' }}</button>
       </template>
-    </AppNavBar>
+    </AppTopNav>
     <view class="count">{{ selecting ? `已选择${selectedIds.length}个` : `共计${total || items.length}个` }}</view>
 
     <scroll-view class="history-scroll" scroll-y @scrolltolower="loadMore">
@@ -44,17 +43,20 @@
         <text>删除</text>
       </view>
     </view>
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
+import { useAuthStore } from '@/stores/authStore'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
+const authStore = useAuthStore()
 const items = ref<TaskHistoryItem[]>([])
 const page = ref(1)
 const pageSize = 30
@@ -63,6 +65,7 @@ const loading = ref(false)
 const hasMore = ref(true)
 const selecting = ref(false)
 const selectedIds = ref<string[]>([])
+const showLoginSheet = ref(false)
 
 const goBack = () => uni.navigateBack()
 
@@ -138,22 +141,44 @@ const statusText = (status: string) => {
   return map[status] || '暂无预览'
 }
 
-onMounted(() => {
+const handleLoggedIn = () => {
+  showLoginSheet.value = false
   loadHistory(true)
+}
+
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
+onMounted(() => {
+  uni.$on('auth:login-required', handleLoginRequired)
+  loadHistory(true)
+})
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
 })
 </script>
 
 <style scoped lang="scss">
 .history-page {
-  min-height: 100vh;
+  height: 100vh;
   background: #050506;
   color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .manage-btn {
   width: 100rpx;
   height: 62rpx;
   border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 62rpx;
   color: #fff;
   font-size: 26rpx;
   background: rgba(255, 255, 255, 0.1);
@@ -166,7 +191,9 @@ onMounted(() => {
 }
 
 .history-scroll {
-  height: calc(100vh - 190rpx);
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 
 .grid {

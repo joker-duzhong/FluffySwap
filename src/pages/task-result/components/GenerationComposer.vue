@@ -117,6 +117,10 @@ const innerPrompt = computed({
   width: 82rpx;
   height: 50rpx;
   border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 50rpx;
   color: #fff;
   font-size: 22rpx;
   background: #5862ff;

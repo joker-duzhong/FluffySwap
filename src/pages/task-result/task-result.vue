@@ -1,14 +1,6 @@
 <template>
   <view class="task-page">
-    <AppStatusBar />
-    <AppNavBar :title="pageTitle" :back="mode !== 'create'" @back="goBack">
-      <template #left>
-        <view v-if="mode === 'create'" class="nav-spacer"></view>
-      </template>
-      <template #right>
-        <AppCapsule v-if="mode !== 'create'" />
-      </template>
-    </AppNavBar>
+    <AppTopNav :title="pageTitle" back @back="goBack" />
 
     <scroll-view v-if="mode === 'create'" class="create-scroll" scroll-y>
       <view class="create-spacer"></view>
@@ -60,19 +52,19 @@
       :task-id="taskId"
       @close="showSharePoster = false"
     />
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import AppCapsule from '@/components/AppCapsule.vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { ASPECT_RATIOS } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
 import { useTaskStore } from '@/stores/taskStore'
 import { aurakeyApi, type TaskModelOption } from '@/services/aurakey'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 import GenerationComposer from './components/GenerationComposer.vue'
 import WorkSharePoster from './components/WorkSharePoster.vue'
 
@@ -88,6 +80,7 @@ const failedReason = ref('')
 const options = ref<TaskModelOption[]>([])
 const ratios = ref<string[]>(ASPECT_RATIOS.map((item) => item.value))
 const showSharePoster = ref(false)
+const showLoginSheet = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 const prompt = computed({
@@ -130,7 +123,7 @@ const handleGenerate = async () => {
     return
   }
   if (!authStore.isLoggedIn) {
-    uni.navigateTo({ url: '/pages/login/login' })
+    showLoginSheet.value = true
     return
   }
   if (selectedCost.value > 0 && authStore.balance < selectedCost.value) {
@@ -211,6 +204,11 @@ const handleRegenerate = () => {
   mode.value = 'create'
 }
 
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
 const chooseImage = () => {
   uni.chooseImage({
     count: 1,
@@ -239,6 +237,7 @@ const showRatioPicker = () => {
 }
 
 onMounted(async () => {
+  uni.$on('auth:login-required', handleLoginRequired)
   await loadOptions()
   const routeMode = getPageOption('mode')
   const routeTaskId = getPageOption('taskId')
@@ -250,25 +249,26 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
   stopPolling()
 })
 </script>
 
 <style scoped lang="scss">
 .task-page {
-  min-height: 100vh;
+  height: 100vh;
   background: #050506;
   color: #fff;
-}
-
-.nav-spacer {
-  width: 1rpx;
-  height: 1rpx;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .create-scroll,
 .result-scroll {
-  height: calc(100vh - 160rpx);
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 
 .create-spacer {
@@ -352,6 +352,10 @@ onUnmounted(() => {
     height: 54rpx;
     padding: 0 8rpx;
     border-radius: 8rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 54rpx;
     color: #fff;
     font-size: 22rpx;
     background: rgba(255, 255, 255, 0.12);

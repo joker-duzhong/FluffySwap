@@ -1,7 +1,6 @@
 <template>
-  <view class="detail-page" @click="toggleChrome">
-    <AppStatusBar />
-    <AppNavBar v-if="chromeVisible" title="模板详情" back @back="goBack" />
+  <view class="detail-page">
+    <AppTopNav title="模板详情" back @back="goBack" />
 
     <view v-if="detail" class="image-wrap">
       <image class="poster-image" :src="detail.image_url || detail.thumb_url" mode="widthFix" />
@@ -10,21 +9,19 @@
     <view v-if="loading" class="loading">加载中...</view>
 
     <PromptPanel
-      v-if="detail && chromeVisible"
+      v-if="detail"
       :prompt="detail.prompt"
       :model="detail.model_name"
       :thumb="detail.thumb_url"
       @copy="copyPrompt"
       @same="createSame"
-      @click.stop
     />
   </view>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { aurakeyApi, type GalleryDetail } from '@/services/aurakey'
 import { useTaskStore } from '@/stores/taskStore'
@@ -33,7 +30,6 @@ import PromptPanel from './components/PromptPanel.vue'
 const taskStore = useTaskStore()
 const detail = ref<GalleryDetail | null>(null)
 const loading = ref(false)
-const chromeVisible = ref(true)
 
 const goBack = () => uni.navigateBack()
 
@@ -41,10 +37,6 @@ const getPageOption = (key: string) => {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1] as any
   return currentPage?.options?.[key] || ''
-}
-
-const toggleChrome = () => {
-  chromeVisible.value = !chromeVisible.value
 }
 
 const copyPrompt = () => {
@@ -82,14 +74,18 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .detail-page {
-  min-height: 100vh;
+  height: 100vh;
   background: #050506;
   color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .image-wrap {
   width: 100%;
-  min-height: calc(100vh - 160rpx);
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
 }

@@ -1,18 +1,18 @@
 <template>
   <view class="profile-view">
     <view class="top-glow"></view>
-    <AppStatusBar />
-    <view class="header">
-      <view class="balance-pill" @click="goRecharge">
-        <image :src="ASSETS.iconSpark" mode="aspectFit" />
-        <text>{{ balance }}</text>
-        <view class="divider"></view>
-        <text>充值</text>
-      </view>
-      <AppCapsule />
-    </view>
+    <AppTopNav>
+      <template #left>
+        <view class="balance-pill" @click="goRecharge">
+          <image :src="ASSETS.iconSpark" mode="aspectFit" />
+          <text>{{ balance }}</text>
+          <view class="divider"></view>
+          <text>充值</text>
+        </view>
+      </template>
+    </AppTopNav>
 
-    <view class="profile-card">
+    <view class="profile-card" :class="{ guest: !isLoggedIn }">
       <view v-if="isLoggedIn" class="logged-user">
         <view class="avatar-wrap">
           <image class="avatar" :src="avatar" mode="aspectFill" />
@@ -97,9 +97,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AppCapsule from '@/components/AppCapsule.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { useHistoryStore } from '@/stores/historyStore'
@@ -124,11 +123,7 @@ const goInvite = () => uni.navigateTo({ url: '/pages/invite/invite' })
 const openWork = (taskId: string) => uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${taskId}` })
 
 const showAgreement = (type: 'user' | 'privacy') => {
-  uni.showModal({
-    title: type === 'user' ? '用户协议' : '隐私政策',
-    content: '请以正式协议页面内容为准。',
-    showCancel: false,
-  })
+  uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
 }
 
 const logout = () => {
@@ -146,6 +141,11 @@ const handleLoggedIn = () => {
   loadData()
 }
 
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
 const loadData = async () => {
   if (!authStore.isLoggedIn) return
   try {
@@ -161,16 +161,21 @@ const loadData = async () => {
 }
 
 onMounted(() => {
+  uni.$on('auth:login-required', handleLoginRequired)
   loadData()
+})
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
 })
 </script>
 
 <style scoped lang="scss">
 .profile-view {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   background: #050506;
-  padding-bottom: 166rpx;
+  padding-bottom: calc(136rpx + env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
@@ -183,19 +188,9 @@ onMounted(() => {
   background: radial-gradient(circle at 0 0, rgba(31, 111, 255, 0.22), transparent 68%);
 }
 
-.header {
-  position: relative;
-  z-index: 1;
-  height: 82rpx;
-  padding: 0 24rpx 0 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .balance-pill {
   height: 56rpx;
-  padding: 0 18rpx;
+  padding: 0 20rpx;
   border-radius: 999rpx;
   display: flex;
   align-items: center;
@@ -217,10 +212,14 @@ onMounted(() => {
 }
 
 .profile-card {
-  min-height: 310rpx;
+  min-height: 300rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &.guest {
+    min-height: 336rpx;
+  }
 }
 
 .login-entry,
@@ -231,9 +230,9 @@ onMounted(() => {
 }
 
 .login-logo {
-  width: 148rpx;
-  height: 148rpx;
-  margin-bottom: 28rpx;
+  width: 152rpx;
+  height: 152rpx;
+  margin-bottom: 30rpx;
   border-radius: 50%;
   box-shadow: 0 0 0 1rpx rgba(255, 255, 255, 0.16), 0 0 42rpx rgba(88, 88, 255, 0.38);
 }
@@ -249,8 +248,8 @@ onMounted(() => {
 }
 
 .avatar {
-  width: 132rpx;
-  height: 132rpx;
+  width: 134rpx;
+  height: 134rpx;
   border-radius: 50%;
 }
 
@@ -271,29 +270,43 @@ onMounted(() => {
 }
 
 .nickname {
-  margin-top: 26rpx;
+  margin-top: 24rpx;
   color: #fff;
   font-size: 34rpx;
   font-weight: 700;
+  line-height: 44rpx;
 }
 
 .phone {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   color: rgba(255, 255, 255, 0.34);
   font-size: 24rpx;
+  line-height: 32rpx;
 }
 
 .vip-card {
+  position: relative;
   height: 132rpx;
-  margin: 0 34rpx 38rpx;
-  padding: 30rpx 36rpx;
+  margin: 0 28rpx 34rpx;
+  padding: 28rpx 38rpx;
   border-radius: 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(65, 76, 155, 0.8), rgba(111, 65, 109, 0.82));
+  background: linear-gradient(135deg, rgba(65, 74, 142, 0.86) 0%, rgba(75, 53, 108, 0.88) 58%, rgba(117, 67, 109, 0.9) 100%);
   border: 1rpx solid rgba(221, 201, 255, 0.3);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 92rpx;
+    top: -42rpx;
+    width: 160rpx;
+    height: 220rpx;
+    transform: rotate(42deg);
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .vip-title,
@@ -303,17 +316,21 @@ onMounted(() => {
 
 .vip-title {
   color: #eee6ff;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 700;
+  line-height: 38rpx;
 }
 
 .vip-desc {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   color: #c8c1e5;
   font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .vip-action {
+  position: relative;
+  z-index: 1;
   width: 126rpx;
   height: 56rpx;
   border-radius: 12rpx;
@@ -327,16 +344,17 @@ onMounted(() => {
 }
 
 .works-section {
-  margin: 0 34rpx 38rpx;
+  margin: 0 28rpx 34rpx;
 }
 
 .section-header {
-  height: 46rpx;
+  height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: #fff;
   font-size: 28rpx;
+  line-height: 38rpx;
 }
 
 .more {
@@ -355,21 +373,21 @@ onMounted(() => {
 }
 
 .works-row {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14rpx;
 
   image {
     width: 100%;
-    height: 156rpx;
+    height: 220rpx;
     border-radius: 12rpx;
     background: #11131a;
   }
 }
 
 .empty-work {
-  height: 236rpx;
+  height: 220rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -382,15 +400,15 @@ onMounted(() => {
 }
 
 .menu-list {
-  margin: 0 34rpx;
-  padding: 28rpx 0;
+  margin: 0 28rpx;
+  padding: 22rpx 0;
   border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.065);
 }
 
 .menu-item {
-  height: 86rpx;
-  padding: 0 32rpx;
+  height: 82rpx;
+  padding: 0 34rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -406,6 +424,7 @@ onMounted(() => {
   gap: 20rpx;
   color: rgba(255, 255, 255, 0.84);
   font-size: 28rpx;
+  line-height: 38rpx;
 
   image {
     width: 30rpx;
@@ -424,6 +443,7 @@ onMounted(() => {
   gap: 0;
   color: rgba(255, 255, 255, 0.42);
   font-size: 22rpx;
+  line-height: 32rpx;
 }
 
 .highlight {

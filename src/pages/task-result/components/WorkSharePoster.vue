@@ -125,6 +125,10 @@ const savePoster = () => {
   button {
     height: 82rpx;
     border-radius: 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 82rpx;
     color: #fff;
     font-size: 28rpx;
     background: rgba(255, 255, 255, 0.14);

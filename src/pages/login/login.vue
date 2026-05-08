@@ -1,7 +1,6 @@
 <template>
   <view class="login-page">
-    <AppStatusBar />
-    <AppCapsule class="capsule" />
+    <AppTopNav />
     <view class="center">
       <image class="logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
       <text class="title">立即登录</text>
@@ -14,9 +13,9 @@
       <view class="agreement" @click="agreed = !agreed">
         <view class="radio" :class="{ active: agreed }"></view>
         <text>已阅读并同意</text>
-        <text class="link">《用户协议》</text>
+        <text class="link" @click.stop="showAgreement('user')">《用户协议》</text>
         <text>和</text>
-        <text class="link">《隐私政策》</text>
+        <text class="link" @click.stop="showAgreement('privacy')">《隐私政策》</text>
       </view>
     </view>
   </view>
@@ -24,8 +23,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import AppCapsule from '@/components/AppCapsule.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import { ASSETS } from '@/config/assets'
 import { WECHAT_CONFIG } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
@@ -33,6 +31,10 @@ import { aurakeyApi } from '@/services/aurakey'
 
 const authStore = useAuthStore()
 const agreed = ref(false)
+
+const showAgreement = (type: 'user' | 'privacy') => {
+  uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
+}
 
 const handleLogin = () => {
   if (!agreed.value) {
@@ -69,14 +71,8 @@ const handleLogin = () => {
   background: #050506;
 }
 
-.capsule {
-  position: absolute;
-  right: 24rpx;
-  top: 96rpx;
-}
-
 .center {
-  height: 450rpx;
+  height: 330rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -134,6 +130,10 @@ const handleLogin = () => {
   height: 96rpx;
   margin-top: 44rpx;
   border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 96rpx;
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;

@@ -94,6 +94,10 @@ defineEmits<{
 .same-btn {
   height: 88rpx;
   border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 88rpx;
   font-size: 30rpx;
   font-weight: 700;
 }
@@ -105,9 +109,6 @@ defineEmits<{
 }
 
 .same-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 14rpx;
   color: #fff;
   background: linear-gradient(180deg, #5a64ff 0%, #3e98ff 100%);

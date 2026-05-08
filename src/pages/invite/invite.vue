@@ -1,7 +1,6 @@
 <template>
   <view class="invite-page">
-    <AppStatusBar />
-    <AppNavBar title="邀请好友" back @back="goBack" />
+    <AppTopNav title="邀请好友" back @back="goBack" />
 
     <view class="poster">
       <view class="poster-bg"></view>
@@ -57,20 +56,22 @@
       <button @click="copyInviteCode">复制邀请码</button>
       <button class="primary" @click="savePoster">保存海报</button>
     </view>
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
 import QrCodeGrid from '@/components/QrCodeGrid.vue'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
 const authStore = useAuthStore()
 const inviteInfo = ref<InviteInfo | null>(null)
+const showLoginSheet = ref(false)
 
 const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
 const nickname = computed(() => authStore.userProfile?.nickname || '用户昵称111')
@@ -98,8 +99,23 @@ const savePoster = () => {
   uni.showToast({ title: '海报保存能力待接入小程序画布', icon: 'none' })
 }
 
-onMounted(() => {
+const handleLoggedIn = () => {
+  showLoginSheet.value = false
   loadInviteInfo()
+}
+
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
+onMounted(() => {
+  uni.$on('auth:login-required', handleLoginRequired)
+  loadInviteInfo()
+})
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
 })
 </script>
 
@@ -268,6 +284,10 @@ onMounted(() => {
   button {
     height: 82rpx;
     border-radius: 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 82rpx;
     color: #fff;
     font-size: 28rpx;
     background: rgba(255, 255, 255, 0.12);

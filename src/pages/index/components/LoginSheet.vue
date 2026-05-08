@@ -33,11 +33,7 @@ const authStore = useAuthStore()
 const agreed = ref(false)
 
 const showAgreement = (type: 'user' | 'privacy') => {
-  uni.showModal({
-    title: type === 'user' ? '用户协议' : '隐私政策',
-    content: '请以正式协议页面内容为准。',
-    showCancel: false,
-  })
+  uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
 }
 
 const handleLogin = () => {
@@ -75,10 +71,12 @@ const handleLogin = () => {
 .sheet-mask {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 3000;
   display: flex;
   align-items: flex-end;
   background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2rpx);
+  -webkit-backdrop-filter: blur(2rpx);
 }
 
 .sheet {
@@ -99,6 +97,7 @@ const handleLogin = () => {
   top: 36rpx;
   color: rgba(255, 255, 255, 0.7);
   font-size: 44rpx;
+  line-height: 44rpx;
 }
 
 .logo {
@@ -125,6 +124,10 @@ const handleLogin = () => {
   height: 96rpx;
   margin-top: 44rpx;
   border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 96rpx;
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;

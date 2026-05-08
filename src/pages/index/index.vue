@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { computed, onMounted } from 'vue'
 import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -31,18 +32,24 @@ const authStore = useAuthStore()
 
 const currentTab = computed(() => appStore.currentTab)
 
+const SHARE_CONFIG = {
+  title: 'AuraKey AI 魔法师',
+  path: '/pages/index/index',
+  imageUrl: ASSETS.logoWordmark,
+} as const
+
 const tabItems: Array<{ name: TabName; label: string; icon: string; activeIcon: string }> = [
   {
     name: 'template',
     label: '模板',
-    icon: ASSETS.tabTemplateInactive,
-    activeIcon: ASSETS.tabTemplateActive,
+    icon: ASSETS.tabTemplateActive,
+    activeIcon: ASSETS.tabTemplateInactive,
   },
   {
     name: 'profile',
     label: '我的',
-    icon: ASSETS.tabProfileInactive,
-    activeIcon: ASSETS.tabProfileActive,
+    icon: ASSETS.tabProfileActive,
+    activeIcon: ASSETS.tabProfileInactive,
   },
 ]
 
@@ -53,12 +60,25 @@ const switchTab = (tab: TabName) => {
 onMounted(() => {
   authStore.loadFromStorage()
 })
+
+onShareAppMessage(() => ({
+  title: SHARE_CONFIG.title,
+  path: SHARE_CONFIG.path,
+  imageUrl: SHARE_CONFIG.imageUrl,
+}))
+
+onShareTimeline(() => ({
+  title: SHARE_CONFIG.title,
+  query: '',
+  imageUrl: SHARE_CONFIG.imageUrl,
+}))
 </script>
 
 <style scoped lang="scss">
 .page {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #050506;
 }
 
@@ -67,26 +87,30 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(122rpx + env(safe-area-inset-bottom));
+  height: calc(110rpx + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(17, 18, 22, 0.92);
-  backdrop-filter: blur(28rpx);
+  border-radius: 34rpx 34rpx 0 0;
+  background: rgba(18, 19, 22, 0.74);
+  backdrop-filter: blur(38rpx);
+  -webkit-backdrop-filter: blur(38rpx);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-around;
   z-index: 1000;
-  box-shadow: 0 -16rpx 52rpx rgba(0, 0, 0, 0.48);
+  box-shadow: 0 -22rpx 60rpx rgba(0, 0, 0, 0.56), inset 0 1rpx 0 rgba(255, 255, 255, 0.08);
 
   .tab-item {
-    width: 230rpx;
+    width: 180rpx;
+    height: 100rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8rpx;
+    gap: 6rpx;
 
     .tab-text {
-      font-size: 24rpx;
+      font-size: 22rpx;
+      line-height: 30rpx;
       color: rgba(255, 255, 255, 0.64);
     }
 
@@ -99,7 +123,7 @@ onMounted(() => {
 }
 
 .tab-icon {
-  width: 46rpx;
-  height: 46rpx;
+  width: 44rpx;
+  height: 44rpx;
 }
 </style>

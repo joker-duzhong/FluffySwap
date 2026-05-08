@@ -1,7 +1,6 @@
 <template>
   <view class="logs-page">
-    <AppStatusBar />
-    <AppNavBar title="积分明细" back @back="goBack" />
+    <AppTopNav title="积分明细" back @back="goBack" />
     <view class="summary-card">
       <view class="score">
         <image :src="ASSETS.iconSpark" mode="aspectFit" />
@@ -21,17 +20,18 @@
       <view v-if="loading" class="loading">加载中...</view>
     </scroll-view>
     <button class="vip-btn" @click="goRecharge">开通会员</button>
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { aurakeyApi, type AssetLogItem } from '@/services/aurakey'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
 const authStore = useAuthStore()
 const logs = ref<AssetLogItem[]>([])
@@ -39,6 +39,7 @@ const page = ref(1)
 const pageSize = 20
 const loading = ref(false)
 const hasMore = ref(true)
+const showLoginSheet = ref(false)
 
 const balance = computed(() => authStore.balance)
 const vipPoint = computed(() => authStore.userProfile?.is_vip ? 40 : 0)
@@ -81,17 +82,35 @@ const loadLogs = async () => {
 
 const loadMore = () => loadLogs()
 
-onMounted(() => {
+const handleLoggedIn = () => {
+  showLoginSheet.value = false
   loadLogs()
+}
+
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
+onMounted(() => {
+  uni.$on('auth:login-required', handleLoginRequired)
+  loadLogs()
+})
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
 })
 </script>
 
 <style scoped lang="scss">
 .logs-page {
-  min-height: 100vh;
+  height: 100vh;
   padding-bottom: calc(118rpx + env(safe-area-inset-bottom));
   background: #050506;
   color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .summary-card {
@@ -128,7 +147,9 @@ onMounted(() => {
 }
 
 .log-scroll {
-  height: calc(100vh - 430rpx);
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 
 .log-item {
@@ -179,6 +200,10 @@ onMounted(() => {
   bottom: calc(24rpx + env(safe-area-inset-bottom));
   height: 96rpx;
   border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 96rpx;
   color: #111;
   font-size: 30rpx;
   font-weight: 800;

@@ -282,7 +282,7 @@ export const aurakeyApi = {
 
   store: {
     products: async () => {
-      const res = await client.GET('/aurakey/store/products')
+      const res = await client.GET('/aurakey/products')
       const data = ensureOk<ProductItem[] | { items: ProductItem[] }>(res.data, '加载商品失败')
       return Array.isArray(data) ? data : data.items || []
     },

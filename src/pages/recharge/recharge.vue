@@ -1,12 +1,7 @@
 <template>
   <view class="recharge-page">
     <image class="hero-bg" :src="ASSETS.vipHero" mode="aspectFill" />
-    <AppStatusBar />
-    <AppNavBar back @back="goBack">
-      <template #right>
-        <AppCapsule />
-      </template>
-    </AppNavBar>
+    <AppTopNav back @back="goBack" />
 
     <view class="hero-content">
       <text class="title">会员中心·VIP</text>
@@ -38,21 +33,22 @@
 
     <button class="open-btn" :disabled="!selectedProduct" @click="handlePay">开通会员</button>
     <text class="agreement">开通会员代表接受《会员协议》</text>
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AppCapsule from '@/components/AppCapsule.vue'
-import AppNavBar from '@/components/AppNavBar.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppTopNav from '@/components/AppTopNav.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { aurakeyApi, type ProductItem } from '@/services/aurakey'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
 const authStore = useAuthStore()
 const products = ref<ProductItem[]>([])
 const selectedProduct = ref<ProductItem | null>(null)
+const showLoginSheet = ref(false)
 
 const vipProducts = computed(() => {
   const list = products.value.filter((item) => item.type === 'vip')
@@ -86,7 +82,7 @@ const handlePay = async () => {
   const openid = authStore.userProfile?.openid
   if (!openid) {
     uni.showToast({ title: '请先登录', icon: 'none' })
-    uni.navigateTo({ url: '/pages/login/login' })
+    showLoginSheet.value = true
     return
   }
 
@@ -110,8 +106,18 @@ const handlePay = async () => {
   }
 }
 
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
+}
+
 onMounted(() => {
+  uni.$on('auth:login-required', handleLoginRequired)
   loadProducts()
+})
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
 })
 </script>
 
@@ -252,6 +258,10 @@ onMounted(() => {
   height: 96rpx;
   margin: 58rpx 38rpx 0;
   border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 96rpx;
   color: #111;
   font-size: 30rpx;
   font-weight: 800;
