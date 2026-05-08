@@ -3,6 +3,7 @@ import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useAuthStore } from "@/stores/authStore";
 import { configureClient } from "@/services/clientConfig";
 import { aurakeyApi } from "@/services/aurakey";
+import { WECHAT_CONFIG } from "@/config";
 
 const authStore = useAuthStore();
 
@@ -12,13 +13,9 @@ onLaunch(async () => {
   // 配置 API 客户端
   configureClient();
 
-  // 从本地存储恢复用户信息
   authStore.loadFromStorage();
 
-  // 如果已登录，尝试刷新用户信息
-  if (authStore.isLoggedIn) {
-    await refreshUserProfile();
-  }
+  await silentLogin();
 });
 
 onShow(() => {
@@ -29,17 +26,32 @@ onHide(() => {
   console.log("App Hide");
 });
 
-/**
- * 刷新用户信息
- */
+async function silentLogin() {
+  try {
+    const loginRes = await new Promise<UniApp.LoginRes>((resolve, reject) => {
+      uni.login({
+        provider: "weixin",
+        success: resolve,
+        fail: reject,
+      });
+    });
+    if (!loginRes.code) return;
+    const token = await aurakeyApi.auth.miniappLogin(WECHAT_CONFIG.APPID, loginRes.code);
+    authStore.setToken(token.access_token);
+    await refreshUserProfile();
+  } catch (error) {
+    console.error("Silent login failed:", error);
+    if (!authStore.token) authStore.clearAuth();
+  }
+}
+
 async function refreshUserProfile() {
   try {
     const profile = await aurakeyApi.user.profile();
     authStore.setUserProfile(profile);
-    console.log('User profile refreshed');
+    console.log("User profile refreshed");
   } catch (error) {
-    console.error('Failed to refresh user profile:', error);
-    // 如果刷新失败（token 过期），清除登录状态
+    console.error("Failed to refresh user profile:", error);
     authStore.clearAuth();
   }
 }

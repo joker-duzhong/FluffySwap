@@ -6,6 +6,12 @@ export interface ApiEnvelope<T> {
   data?: T
 }
 
+export interface TokenResponse {
+  access_token: string
+  refresh_token?: string
+  token_type?: string
+}
+
 export interface PaginatedData<T> {
   items: T[]
   total?: number
@@ -48,6 +54,8 @@ export interface TaskHistoryItem {
   image_url: string | null
   prompt: string
   status: 'pending' | 'processing' | 'success' | 'failed' | string
+  progress?: number | null
+  failed_reason?: string | null
   cost: number
   model_name?: string
   aspect_ratio?: string
@@ -97,6 +105,35 @@ export interface UserProfile {
   is_vip: boolean
   type: string
   vip_expire_time?: number | null
+}
+
+export interface UserUpdatePayload {
+  nickname?: string | null
+  avatar?: string | null
+}
+
+export interface UploadTokenResponse {
+  token: string
+  domain: string
+}
+
+export interface ConfirmUploadPayload {
+  name: string
+  url: string
+  thumb_url?: string | null
+  size: number
+  type: string
+  hash: string
+}
+
+export interface ResourceResponse {
+  id: string
+  name: string
+  url: string
+  thumb_url?: string | null
+  size: number
+  type: string
+  hash: string
 }
 
 export interface InviteInfo {
@@ -188,11 +225,28 @@ export const aurakeyApi = {
   auth: {
     miniappLogin: async (appid: string, code: string) => {
       const res = await client.POST('/auth/miniapp/login', { body: { appid, code } })
-      return ensureOk<{ access_token: string }>(res.data, '登录失败')
+      return ensureOk<TokenResponse>(res.data, '登录失败')
+    },
+    bindMiniappPhone: async (appid: string, code: string) => {
+      const res = await client.POST('/auth/miniapp/phone', { body: { appid, code } })
+      return ensureOk<UserProfile>(res.data, '绑定手机号失败')
+    },
+    bindPhone: async (phone: string, code: string) => {
+      const res = await client.POST('/auth/phone/bind', { body: { phone, code } })
+      return ensureOk<UserProfile>(res.data, '绑定手机号失败')
+    },
+    updateMe: async (payload: UserUpdatePayload) => {
+      const res = await client.PUT('/auth/me', { body: payload })
+      return ensureOk<UserProfile>(res.data, '更新资料失败')
     },
     getCurrentUser: async () => {
       const res = await client.GET('/auth/me')
       return ensureOk<UserProfile>(res.data, '加载用户失败')
+    },
+    ensureSession: async (appid: string, code: string) => {
+      const tokenRes = await aurakeyApi.auth.miniappLogin(appid, code)
+      const profile = await aurakeyApi.user.profile()
+      return { token: tokenRes, profile }
     },
   },
 
@@ -230,7 +284,7 @@ export const aurakeyApi = {
       return ensureOk<TaskOptions>(res.data, '加载模型失败')
     },
     generate: async (payload: TaskGeneratePayload) => {
-      const res = await client.POST('/aurakey/task/generate', { body: payload })
+      const res = await client.POST('/aurakey/task/generate-stream', { body: payload })
       return ensureOk<TaskGenerateResponse>(res.data, '提交任务失败')
     },
     status: async (taskId: string) => {
@@ -289,9 +343,9 @@ export const aurakeyApi = {
   },
 
   order: {
-    create: async (productId: string, openid: string) => {
+    create: async (productId: string) => {
       const res = await client.POST('/aurakey/order/create', {
-        body: { product_id: productId, openid },
+        body: { product_id: productId },
       })
       return ensureOk<OrderCreateResponse>(res.data, '创建订单失败')
     },
@@ -309,6 +363,20 @@ export const aurakeyApi = {
         params: { query: { page, pageSize } },
       })
       return normalizeList<AssetLogItem>(res.data)
+    },
+  },
+
+  storage: {
+    uploadToken: async () => {
+      const res = await client.GET('/storage/upload-token')
+      return ensureOk<UploadTokenResponse>(res.data, '获取上传凭证失败')
+    },
+    confirmUpload: async (payload: ConfirmUploadPayload) => {
+      const res = await client.POST('/storage/confirm-upload', {
+        body: payload,
+        headers: { app: 'aurakey' },
+      })
+      return ensureOk<ResourceResponse>(res.data, '确认上传失败')
     },
   },
 }

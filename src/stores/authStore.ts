@@ -17,6 +17,17 @@ export interface UserProfile {
   vip_expire_time?: number | null
 }
 
+const normalizeProfile = (profile: Partial<UserProfile> & { id?: string }) => ({
+  ...profile,
+  user_id: profile.user_id || profile.id || '',
+  nickname: profile.nickname || 'UserName_111',
+  avatar: profile.avatar || ASSETS.defaultAvatar,
+  phone: profile.phone || null,
+  balance: Number(profile.balance || 0),
+  is_vip: Boolean(profile.is_vip),
+  type: profile.type || '普通会员',
+}) as UserProfile
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: '',
@@ -31,17 +42,12 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     setToken(token: string) {
       this.token = token
-      this.isLoggedIn = true
       uni.setStorageSync(STORAGE_KEYS.TOKEN, token)
     },
     setUserProfile(profile: UserProfile) {
-      const normalizedProfile = {
-        ...profile,
-        nickname: profile.nickname || 'UserName_111',
-        avatar: profile.avatar || ASSETS.defaultAvatar,
-        type: profile.type || '普通会员',
-      }
+      const normalizedProfile = normalizeProfile(profile)
       this.userProfile = normalizedProfile
+      this.isLoggedIn = Boolean(normalizedProfile.phone)
       uni.setStorageSync(STORAGE_KEYS.USER_INFO, normalizedProfile)
     },
     clearAuth() {
@@ -56,11 +62,11 @@ export const useAuthStore = defineStore('auth', {
       const userInfo = uni.getStorageSync(STORAGE_KEYS.USER_INFO)
       if (token) {
         this.token = token
-        this.isLoggedIn = true
       }
       if (userInfo) {
-        this.userProfile = userInfo
+        this.userProfile = normalizeProfile(userInfo)
       }
+      this.isLoggedIn = Boolean(this.userProfile?.phone)
     },
     updateBalance(balance: number) {
       if (this.userProfile) {
@@ -70,7 +76,8 @@ export const useAuthStore = defineStore('auth', {
     },
     updateProfilePatch(patch: Partial<UserProfile>) {
       if (!this.userProfile) return
-      this.userProfile = { ...this.userProfile, ...patch }
+      this.userProfile = normalizeProfile({ ...this.userProfile, ...patch })
+      this.isLoggedIn = Boolean(this.userProfile.phone)
       uni.setStorageSync(STORAGE_KEYS.USER_INFO, this.userProfile)
     },
   },

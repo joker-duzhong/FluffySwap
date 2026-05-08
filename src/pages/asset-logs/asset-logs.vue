@@ -9,7 +9,8 @@
       <text class="breakdown">会员灵感值 {{ vipPoint }} ｜ 充值灵感值 {{ rechargePoint }} ｜ 赠送灵感值 {{ giftPoint }}</text>
     </view>
     <scroll-view class="log-scroll" scroll-y @scrolltolower="loadMore">
-      <view v-for="item in logs" :key="item.id" class="log-item">
+      <PageSkeleton v-if="loading && logs.length === 0" :rows="5" />
+      <view v-for="item in logs" v-else :key="item.id" class="log-item">
         <view>
           <text class="desc">{{ item.description || getLogText(item.type) }}</text>
           <text class="date">{{ formatDate(item.created_at || item.createdAt) }}</text>
@@ -17,7 +18,7 @@
         <text class="amount" :class="{ plus: item.amount > 0 }">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</text>
       </view>
       <EmptyState v-if="logs.length === 0 && !loading" title="暂无积分明细" />
-      <view v-if="loading" class="loading">加载中...</view>
+      <view v-if="loading && logs.length > 0" class="loading">加载中...</view>
     </scroll-view>
     <button class="vip-btn" @click="goRecharge">开通会员</button>
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
@@ -28,6 +29,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { aurakeyApi, type AssetLogItem } from '@/services/aurakey'

@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <TemplateView v-show="currentTab === 'template'" />
+    <TemplateView v-show="currentTab === 'template'" @create="openCreateSheet()" />
     <ProfileView v-show="currentTab === 'profile'" />
 
     <view class="custom-tabbar">
@@ -15,20 +15,36 @@
         <text class="tab-text">{{ tab.label }}</text>
       </view>
     </view>
+
+    <CreateTaskSheet
+      v-if="showCreateSheet"
+      @close="showCreateSheet = false"
+      @login-required="handleLoginRequired"
+      @submitted="handleTaskSubmitted"
+    />
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useHistoryStore } from '@/stores/historyStore'
+import { useTaskStore } from '@/stores/taskStore'
 import { ASSETS } from '@/config/assets'
+import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
+import LoginSheet from './components/LoginSheet.vue'
 import TemplateView from './components/TemplateView.vue'
 import ProfileView from './components/ProfileView.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const historyStore = useHistoryStore()
+const taskStore = useTaskStore()
+const showCreateSheet = ref(false)
+const showLoginSheet = ref(false)
 
 const currentTab = computed(() => appStore.currentTab)
 
@@ -55,6 +71,28 @@ const tabItems: Array<{ name: TabName; label: string; icon: string; activeIcon: 
 
 const switchTab = (tab: TabName) => {
   appStore.setTab(tab)
+}
+
+const openCreateSheet = () => {
+  showCreateSheet.value = true
+}
+
+const handleLoginRequired = () => {
+  showLoginSheet.value = true
+}
+
+const handleLoggedIn = () => {
+  showLoginSheet.value = false
+}
+
+const handleTaskSubmitted = (taskId: string) => {
+  showCreateSheet.value = false
+  historyStore.trackSubmittedTask(taskId, {
+    prompt: taskStore.prompt || '生成中',
+    model_name: taskStore.selectedModel,
+    aspect_ratio: taskStore.selectedRatio,
+  })
+  uni.navigateTo({ url: `/pages/history/history?taskId=${taskId}` })
 }
 
 onMounted(() => {

@@ -4,8 +4,20 @@
       <view class="close" @click="$emit('close')">×</view>
       <image class="logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
       <text class="title">欢迎使用灵钥</text>
-      <text class="desc">首次注册需要授权手机号进行登录</text>
-      <button class="login-btn" @click="handleLogin">授权登录</button>
+      <text class="desc">{{ authStore.token ? '绑定手机号后即可继续使用' : '首次进入会先完成微信静默登录' }}</text>
+      <button
+        v-if="authStore.token"
+        class="login-btn"
+        open-type="getPhoneNumber"
+        :disabled="loading"
+        :loading="loading"
+        @getphonenumber="handlePhoneNumber"
+      >
+        {{ loading ? '绑定中' : '绑定手机号' }}
+      </button>
+      <button v-else class="login-btn" :disabled="loading" :loading="loading" @click="handleLogin">
+        {{ loading ? '登录中' : '微信登录' }}
+      </button>
       <view class="agreement" @click="agreed = !agreed">
         <view class="radio" :class="{ active: agreed }"></view>
         <text>已阅读并同意</text>
@@ -31,6 +43,7 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const agreed = ref(false)
+const loading = ref(false)
 
 const showAgreement = (type: 'user' | 'privacy') => {
   uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
@@ -42,7 +55,7 @@ const handleLogin = () => {
     return
   }
 
-  uni.showLoading({ title: '登录中...' })
+  loading.value = true
   uni.login({
     provider: 'weixin',
     success: async (loginRes) => {
@@ -51,19 +64,53 @@ const handleLogin = () => {
         authStore.setToken(tokenRes.access_token)
         const profile = await aurakeyApi.user.profile()
         authStore.setUserProfile(profile)
-        uni.hideLoading()
-        uni.showToast({ title: '登录成功', icon: 'success' })
-        emit('logged-in')
+        if (profile.phone) {
+          uni.showToast({ title: '登录成功', icon: 'success' })
+          emit('logged-in')
+        } else {
+          uni.showToast({ title: '请绑定手机号', icon: 'none' })
+        }
       } catch (error: any) {
-        uni.hideLoading()
         uni.showToast({ title: error.message || '登录失败', icon: 'none' })
+      } finally {
+        loading.value = false
       }
     },
     fail: () => {
-      uni.hideLoading()
+      loading.value = false
       uni.showToast({ title: '登录失败', icon: 'none' })
     },
   })
+}
+
+const handlePhoneNumber = async (event: any) => {
+  if (!agreed.value) {
+    uni.showToast({ title: '请先同意协议', icon: 'none' })
+    return
+  }
+  const code = event?.detail?.code
+  if (!code) {
+    uni.showToast({ title: '未授权手机号', icon: 'none' })
+    return
+  }
+
+  loading.value = true
+  try {
+    const boundProfile = await aurakeyApi.auth.bindMiniappPhone(WECHAT_CONFIG.APPID, code)
+    authStore.setUserProfile(boundProfile)
+    try {
+      const profile = await aurakeyApi.user.profile()
+      authStore.setUserProfile(profile)
+    } catch (error) {
+      console.error('绑定后刷新用户资料失败:', error)
+    }
+    uni.showToast({ title: '绑定成功', icon: 'success' })
+    emit('logged-in')
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '绑定手机号失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

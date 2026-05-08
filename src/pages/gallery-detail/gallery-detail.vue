@@ -2,11 +2,11 @@
   <view class="detail-page">
     <AppTopNav title="模板详情" back @back="goBack" />
 
-    <view v-if="detail" class="image-wrap">
+    <PageSkeleton v-if="loading" variant="detail" :rows="1" />
+    <view v-else-if="detail" class="image-wrap">
       <image class="poster-image" :src="detail.image_url || detail.thumb_url" mode="widthFix" />
     </view>
     <EmptyState v-else-if="!loading" title="模板不存在" description="请返回模板页重新选择。" />
-    <view v-if="loading" class="loading">加载中...</view>
 
     <PromptPanel
       v-if="detail"
@@ -16,20 +16,38 @@
       @copy="copyPrompt"
       @same="createSame"
     />
+    <CreateTaskSheet
+      v-if="showCreateSheet && detail"
+      :preset-prompt="detail.prompt"
+      :preset-ratio="detail.aspect_ratio"
+      :preset-model="detail.model_name"
+      :reference-image="detail.thumb_url"
+      @close="showCreateSheet = false"
+      @login-required="showLoginSheet = true"
+      @submitted="handleTaskSubmitted"
+    />
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
+import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PageSkeleton from '@/components/PageSkeleton.vue'
 import { aurakeyApi, type GalleryDetail } from '@/services/aurakey'
+import { useHistoryStore } from '@/stores/historyStore'
 import { useTaskStore } from '@/stores/taskStore'
+import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 import PromptPanel from './components/PromptPanel.vue'
 
 const taskStore = useTaskStore()
+const historyStore = useHistoryStore()
 const detail = ref<GalleryDetail | null>(null)
 const loading = ref(false)
+const showCreateSheet = ref(false)
+const showLoginSheet = ref(false)
 
 const goBack = () => uni.navigateBack()
 
@@ -50,7 +68,17 @@ const copyPrompt = () => {
 const createSame = () => {
   if (!detail.value) return
   taskStore.applyPreset(detail.value.prompt, detail.value.aspect_ratio, detail.value.model_name)
-  uni.navigateTo({ url: `/pages/task-result/task-result?mode=create&sourceId=${detail.value.id}` })
+  showCreateSheet.value = true
+}
+
+const handleTaskSubmitted = (taskId: string) => {
+  showCreateSheet.value = false
+  historyStore.trackSubmittedTask(taskId, {
+    prompt: taskStore.prompt || '生成中',
+    model_name: taskStore.selectedModel,
+    aspect_ratio: taskStore.selectedRatio,
+  })
+  uni.navigateTo({ url: `/pages/history/history?taskId=${taskId}` })
 }
 
 const loadDetail = async () => {

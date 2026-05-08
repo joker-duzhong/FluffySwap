@@ -14,7 +14,7 @@
 
     <view class="profile-card" :class="{ guest: !isLoggedIn }">
       <view v-if="isLoggedIn" class="logged-user">
-        <view class="avatar-wrap">
+        <view class="avatar-wrap" @click="showEditSheet = true">
           <image class="avatar" :src="avatar" mode="aspectFill" />
           <view class="edit-dot">✎</view>
         </view>
@@ -43,14 +43,19 @@
           <text class="chevron">›</text>
         </view>
       </view>
-      <view v-if="works.length > 0" class="works-row">
-        <image
+      <PageSkeleton v-if="worksLoading" variant="grid" :rows="3" />
+      <view v-else-if="works.length > 0" class="works-row">
+        <view
           v-for="item in works.slice(0, 3)"
           :key="item.task_id"
-          :src="item.image_url || ASSETS.vipHero"
-          mode="aspectFill"
+          class="work-preview"
           @click="openWork(item.task_id)"
-        />
+        >
+          <image v-if="item.image_url" :src="item.image_url" mode="aspectFill" />
+          <view v-else class="work-placeholder" :class="{ polling: historyStore.isRunningItem(item.task_id) }">
+            <text>{{ progressText(item) }}</text>
+          </view>
+        </view>
       </view>
       <view v-else class="empty-work">
         <image :src="ASSETS.sparkLarge" mode="aspectFit" />
@@ -93,21 +98,32 @@
     </view>
 
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
+    <ProfileEditSheet
+      v-if="showEditSheet"
+      :nickname="nickname"
+      :avatar="avatar"
+      @close="showEditSheet = false"
+      @saved="handleProfileSaved"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
+import PageSkeleton from '@/components/PageSkeleton.vue'
+import ProfileEditSheet from '@/components/ProfileEditSheet.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { useHistoryStore } from '@/stores/historyStore'
-import { aurakeyApi } from '@/services/aurakey'
+import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
 import LoginSheet from './LoginSheet.vue'
 
 const authStore = useAuthStore()
 const historyStore = useHistoryStore()
 const showLoginSheet = ref(false)
+const showEditSheet = ref(false)
+const worksLoading = ref(false)
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const balance = computed(() => authStore.balance)
@@ -121,6 +137,20 @@ const goHistory = () => uni.navigateTo({ url: '/pages/history/history' })
 const goAssetLogs = () => uni.navigateTo({ url: '/pages/asset-logs/asset-logs' })
 const goInvite = () => uni.navigateTo({ url: '/pages/invite/invite' })
 const openWork = (taskId: string) => uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${taskId}` })
+
+const statusText = (status: string) => {
+  const map: Record<string, string> = {
+    pending: '排队中',
+    processing: '生成中',
+    failed: '生成失败',
+  }
+  return map[status] || '暂无预览'
+}
+
+const progressText = (item: TaskHistoryItem) => {
+  if (historyStore.isRunningItem(item.task_id)) return `${item.progress || historyStore.pollingProgress || 1}% AI绘图中...`
+  return statusText(item.status)
+}
 
 const showAgreement = (type: 'user' | 'privacy') => {
   uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
@@ -141,6 +171,11 @@ const handleLoggedIn = () => {
   loadData()
 }
 
+const handleProfileSaved = () => {
+  showEditSheet.value = false
+  loadData()
+}
+
 const handleLoginRequired = () => {
   authStore.clearAuth()
   showLoginSheet.value = true
@@ -148,15 +183,17 @@ const handleLoginRequired = () => {
 
 const loadData = async () => {
   if (!authStore.isLoggedIn) return
+  worksLoading.value = historyStore.items.length === 0
   try {
-    const [profile, history] = await Promise.all([
+    const [profile] = await Promise.all([
       aurakeyApi.user.profile(),
-      aurakeyApi.user.history(1, 6),
+      historyStore.loadHistory({ reset: true }),
     ])
     authStore.setUserProfile(profile)
-    historyStore.setItems(history.items)
-  } catch (error) {
-    console.error('加载我的页面失败:', error)
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '加载我的页面失败', icon: 'none' })
+  } finally {
+    worksLoading.value = false
   }
 }
 
@@ -372,17 +409,56 @@ onUnmounted(() => {
   line-height: 1;
 }
 
-.works-row {
+.works-row,
+.works-section :deep(.page-skeleton.grid) {
   margin-top: 18rpx;
+}
+
+.works-section :deep(.page-skeleton) {
+  padding: 18rpx 0 0;
+}
+
+.works-section :deep(.skeleton-row) {
+  height: 220rpx;
+  border-radius: 12rpx;
+}
+
+.works-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14rpx;
+}
+
+.work-preview {
+  height: 220rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #11131a;
 
   image {
     width: 100%;
     height: 220rpx;
-    border-radius: 12rpx;
-    background: #11131a;
+    display: block;
+  }
+}
+
+.work-placeholder {
+  width: 100%;
+  height: 100%;
+  padding: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  text-align: center;
+
+  &.polling {
+    align-items: flex-start;
+    justify-content: flex-end;
+    text-align: left;
+    background: linear-gradient(135deg, #26262c, #1a1a20);
   }
 }
 

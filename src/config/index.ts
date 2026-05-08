@@ -5,8 +5,8 @@
 
 // API 配置
 export const API_CONFIG = {
-  // BASE_URL: "http://localhost:8000/api/v1",
-  BASE_URL: "https://api.lxyy.fun/api/v1",
+  BASE_URL: "http://localhost:8000/api/v1",
+  // BASE_URL: "https://api.lxyy.fun/api/v1",
   TIMEOUT: 30000,
 };
 

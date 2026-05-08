@@ -8,7 +8,8 @@
     <view class="count">{{ selecting ? `已选择${selectedIds.length}个` : `共计${total || items.length}个` }}</view>
 
     <scroll-view class="history-scroll" scroll-y @scrolltolower="loadMore">
-      <view class="grid" :class="{ selecting }">
+      <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
+      <view v-else class="grid" :class="{ selecting }">
         <view
           v-for="item in items"
           :key="item.task_id"
@@ -16,7 +17,9 @@
           @click="handleItemClick(item)"
         >
           <image v-if="item.image_url" :src="item.image_url" mode="aspectFill" />
-          <view v-else class="placeholder">{{ statusText(item.status) }}</view>
+          <view v-else class="placeholder" :class="{ polling: isPollingItem(item.task_id) }">
+            <text>{{ progressText(item) }}</text>
+          </view>
           <view v-if="selecting" class="check">
             <image
               :src="selectedIds.includes(item.task_id) ? ASSETS.iconCheckSmall : ASSETS.iconRadioEmpty"
@@ -26,7 +29,7 @@
         </view>
       </view>
       <EmptyState v-if="items.length === 0 && !loading" title="暂无作品" description="生成完成的作品会保存在这里。" />
-      <view v-if="loading" class="loading">加载中...</view>
+      <view v-if="loading && items.length > 0" class="loading">加载中...</view>
     </scroll-view>
 
     <view v-if="selecting" class="batch-bar">
@@ -43,50 +46,73 @@
         <text>删除</text>
       </view>
     </view>
+    <view v-else class="create-entry" @click="showCreateSheet = true">创作</view>
+    <CreateTaskSheet
+      v-if="showCreateSheet"
+      @close="showCreateSheet = false"
+      @login-required="showLoginSheet = true"
+      @submitted="handleTaskSubmitted"
+    />
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
+import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
-import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
+import type { TaskHistoryItem } from '@/services/aurakey'
 import { useAuthStore } from '@/stores/authStore'
+import { useHistoryStore } from '@/stores/historyStore'
+import { useTaskStore } from '@/stores/taskStore'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
 const authStore = useAuthStore()
-const items = ref<TaskHistoryItem[]>([])
-const page = ref(1)
-const pageSize = 30
-const total = ref(0)
-const loading = ref(false)
-const hasMore = ref(true)
+const historyStore = useHistoryStore()
+const taskStore = useTaskStore()
 const selecting = ref(false)
 const selectedIds = ref<string[]>([])
 const showLoginSheet = ref(false)
+const showCreateSheet = ref(false)
+
+const items = computed(() => historyStore.items)
+const total = computed(() => historyStore.total)
+const loading = computed(() => historyStore.loading)
 
 const goBack = () => uni.navigateBack()
 
+const getPageOption = (key: string) => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1] as any
+  return currentPage?.options?.[key] || ''
+}
+
 const loadHistory = async (reset = false) => {
-  if (loading.value || (!hasMore.value && !reset)) return
-  loading.value = true
+  if (!authStore.isLoggedIn) {
+    showLoginSheet.value = true
+    return
+  }
   try {
-    const current = reset ? 1 : page.value
-    const data = await aurakeyApi.user.history(current, pageSize)
-    items.value = current === 1 ? data.items : items.value.concat(data.items)
-    total.value = data.total || items.value.length
-    page.value = current + 1
-    hasMore.value = data.items.length >= pageSize
+    await historyStore.loadHistory({ reset })
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
 const loadMore = () => loadHistory()
+
+const handleTaskSubmitted = (taskId: string) => {
+  showCreateSheet.value = false
+  historyStore.trackSubmittedTask(taskId, {
+    prompt: taskStore.prompt || '生成中',
+    model_name: taskStore.selectedModel,
+    aspect_ratio: taskStore.selectedRatio,
+  })
+  loadHistory(true)
+}
 
 const toggleSelect = () => {
   selecting.value = !selecting.value
@@ -119,10 +145,7 @@ const deleteSelected = () => {
     success: async (res) => {
       if (!res.confirm) return
       try {
-        for (const taskId of selectedIds.value) {
-          await aurakeyApi.user.deleteHistory(taskId)
-        }
-        items.value = items.value.filter((item) => !selectedIds.value.includes(item.task_id))
+        await historyStore.deleteItems(selectedIds.value)
         selectedIds.value = []
         selecting.value = false
       } catch (error: any) {
@@ -141,6 +164,13 @@ const statusText = (status: string) => {
   return map[status] || '暂无预览'
 }
 
+const isPollingItem = (taskId: string) => historyStore.isRunningItem(taskId)
+
+const progressText = (item: TaskHistoryItem) => {
+  if (isPollingItem(item.task_id)) return `${item.progress || historyStore.pollingProgress || 1}% AI绘图中...`
+  return statusText(item.status)
+}
+
 const handleLoggedIn = () => {
   showLoginSheet.value = false
   loadHistory(true)
@@ -153,6 +183,14 @@ const handleLoginRequired = () => {
 
 onMounted(() => {
   uni.$on('auth:login-required', handleLoginRequired)
+  const taskId = getPageOption('taskId')
+  if (taskId) {
+    historyStore.trackSubmittedTask(taskId, {
+      prompt: taskStore.prompt || '生成中',
+      model_name: taskStore.selectedModel,
+      aspect_ratio: taskStore.selectedRatio,
+    })
+  }
   loadHistory(true)
 })
 
@@ -194,6 +232,7 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   height: auto;
+  padding-bottom: calc(134rpx + env(safe-area-inset-bottom));
 }
 
 .grid {
@@ -225,6 +264,18 @@ onUnmounted(() => {
   justify-content: center;
   color: rgba(255, 255, 255, 0.42);
   font-size: 24rpx;
+
+  &.polling {
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 24rpx;
+    text-align: left;
+    background: linear-gradient(135deg, #26262c, #1a1a20);
+  }
+
+  text {
+    display: block;
+  }
 }
 
 .check {
@@ -269,5 +320,23 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.36);
   font-size: 24rpx;
   text-align: center;
+}
+
+.create-entry {
+  position: fixed;
+  left: 50%;
+  bottom: calc(36rpx + env(safe-area-inset-bottom));
+  width: 430rpx;
+  height: 88rpx;
+  transform: translateX(-50%);
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 700;
+  background: linear-gradient(180deg, #5a64ff 0%, #3e98ff 100%);
+  box-shadow: 0 18rpx 44rpx rgba(45, 108, 255, 0.45);
 }
 </style>

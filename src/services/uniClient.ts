@@ -137,7 +137,7 @@ class UniClient {
     }
   }
 
-  async GET<T = any>(url: string, options?: { params?: { query?: Record<string, any>; path?: Record<string, any> } }): Promise<Response<T>> {
+  async GET<T = any>(url: string, options?: { params?: { query?: Record<string, any>; path?: Record<string, any> }; headers?: Record<string, string> }): Promise<Response<T>> {
     // 处理路径参数
     let finalUrl = url
     if (options?.params?.path) {
@@ -150,10 +150,11 @@ class UniClient {
       url: finalUrl,
       method: 'GET',
       params: options?.params?.query,
+      headers: options?.headers,
     })
   }
 
-  async POST<T = any>(url: string, options?: { body?: any; params?: { path?: Record<string, any> } }): Promise<Response<T>> {
+  async POST<T = any>(url: string, options?: { body?: any; params?: { path?: Record<string, any> }; headers?: Record<string, string> }): Promise<Response<T>> {
     // 处理路径参数
     let finalUrl = url
     if (options?.params?.path) {
@@ -166,10 +167,11 @@ class UniClient {
       url: finalUrl,
       method: 'POST',
       data: options?.body,
+      headers: options?.headers,
     })
   }
 
-  async PUT<T = any>(url: string, options?: { body?: any; params?: { path?: Record<string, any> } }): Promise<Response<T>> {
+  async PUT<T = any>(url: string, options?: { body?: any; params?: { path?: Record<string, any> }; headers?: Record<string, string> }): Promise<Response<T>> {
     // 处理路径参数
     let finalUrl = url
     if (options?.params?.path) {
@@ -182,6 +184,7 @@ class UniClient {
       url: finalUrl,
       method: 'PUT',
       data: options?.body,
+      headers: options?.headers,
     })
   }
 

@@ -38,6 +38,7 @@
       :model-name="selectedModelName"
       :ratio="selectedRatio"
       :can-send="canSend"
+      :sending="submitting"
       :expanded="mode === 'create'"
       @send="handleGenerate"
       @focus="mode = 'create'"
@@ -81,6 +82,7 @@ const options = ref<TaskModelOption[]>([])
 const ratios = ref<string[]>(ASPECT_RATIOS.map((item) => item.value))
 const showSharePoster = ref(false)
 const showLoginSheet = ref(false)
+const submitting = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 const prompt = computed({
@@ -131,6 +133,7 @@ const handleGenerate = async () => {
     return
   }
 
+  submitting.value = true
   try {
     const task = await aurakeyApi.task.generate({
       prompt: prompt.value.trim(),
@@ -139,12 +142,11 @@ const handleGenerate = async () => {
     })
     authStore.updateBalance(task.balance_after)
     taskId.value = task.task_id
-    mode.value = 'result'
-    status.value = 'pending'
-    progress.value = 0
-    startPolling()
+    uni.redirectTo({ url: `/pages/history/history?taskId=${task.task_id}` })
   } catch (error: any) {
     uni.showToast({ title: error.message || '生成失败', icon: 'none' })
+  } finally {
+    submitting.value = false
   }
 }
 

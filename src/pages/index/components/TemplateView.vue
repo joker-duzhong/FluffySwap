@@ -24,7 +24,8 @@
     <scroll-view class="template-scroll" scroll-y :class="{ empty: items.length === 0 && !loading }"
       :lower-threshold="120" @scrolltolower="loadMore" :refresher-enabled="items.length > 0"
       :refresher-triggered="refreshing" @refresherrefresh="refresh">
-      <view v-if="items.length > 0" class="template-grid">
+      <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
+      <view v-else-if="items.length > 0" class="template-grid">
         <view v-for="item in items" :key="item.id" class="template-card" @click="openTemplate(item.id)">
           <text class="card-title">{{ getCardTitle(item) }}</text>
           <image class="card-image" :src="item.thumb_url" mode="aspectFill" />
@@ -33,11 +34,11 @@
       <view v-else-if="!loading" class="empty-wrap">
         <EmptyState title="暂无模板" description="分类已加载，模板内容会从后端画廊接口同步。" />
       </view>
-      <view v-if="loading" class="loading">加载中...</view>
+      <view v-if="loading && items.length > 0" class="loading">加载中...</view>
       <view v-else-if="!hasMore && items.length > 0" class="loading">没有更多了</view>
     </scroll-view>
 
-    <view class="free-create" @click="goCreate">
+    <view class="free-create" @click="$emit('create')">
       <text>自由创作</text>
     </view>
   </view>
@@ -47,8 +48,13 @@
 import { computed, onMounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi, type GalleryCategory, type GalleryItem } from '@/services/aurakey'
+
+defineEmits<{
+  (event: 'create'): void
+}>()
 
 const categories = ref<GalleryCategory[]>([])
 const activeCategoryId = ref('')
@@ -59,11 +65,13 @@ const loading = ref(false)
 const refreshing = ref(false)
 const hasMore = ref(true)
 
+const ALL_CATEGORY: GalleryCategory = { id: 'all', name: '全部', sort: -1 }
+
 const activeCategory = computed(() => categories.value.find((item) => item.id === activeCategoryId.value))
 
 const normalizeCategories = (remoteCategories: GalleryCategory[]) => {
-  if (remoteCategories.length > 0) return remoteCategories
-  return [{ id: 'all', name: '全部', sort: 0 }]
+  const withoutAll = remoteCategories.filter((item) => item.id !== ALL_CATEGORY.id && item.name !== ALL_CATEGORY.name)
+  return [ALL_CATEGORY, ...withoutAll]
 }
 
 const loadCategories = async () => {
@@ -71,8 +79,8 @@ const loadCategories = async () => {
     const remoteCategories = await aurakeyApi.categories.list()
     categories.value = normalizeCategories(remoteCategories)
     activeCategoryId.value = categories.value[0]?.id || ''
-  } catch (error) {
-    console.error('加载模板分类失败:', error)
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '加载分类失败', icon: 'none' })
     categories.value = normalizeCategories([])
     activeCategoryId.value = 'all'
   }
@@ -122,15 +130,12 @@ const openTemplate = (id: string) => {
   uni.navigateTo({ url: `/pages/gallery-detail/gallery-detail?id=${id}` })
 }
 
-const goCreate = () => {
-  uni.navigateTo({ url: '/pages/task-result/task-result?mode=create' })
-}
-
 const goHistory = () => {
   uni.navigateTo({ url: '/pages/history/history' })
 }
 
 const getCardTitle = (item: GalleryItem) => {
+  if (activeCategoryId.value === ALL_CATEGORY.id) return item.aspect_ratio || '模板'
   return activeCategory.value?.name || item.aspect_ratio || '电商海报'
 }
 

@@ -16,7 +16,9 @@
       <view class="option" @click="$emit('ratio')">{{ ratio }}</view>
       <view class="option">1K</view>
       <view class="option">+2</view>
-      <button class="send-btn" :disabled="!canSend" @click="$emit('send')">生成</button>
+      <button class="send-btn" :disabled="!canSend || sending" :loading="sending" @click="$emit('send')">
+        {{ sending ? '提交中' : '生成' }}
+      </button>
     </view>
   </view>
 </template>
@@ -30,6 +32,7 @@ const props = defineProps<{
   modelName: string
   ratio: string
   canSend: boolean
+  sending?: boolean
   expanded?: boolean
 }>()
 
