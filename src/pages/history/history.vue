@@ -1,465 +1,246 @@
 <template>
-  <view class="history-container">
-    <!-- 顶部导航 -->
-    <view class="nav-bar">
-      <view class="nav-btn" @click="goBack">
-        <text>‹</text>
-      </view>
-      <text class="nav-title">我的画廊</text>
-      <text class="nav-action" :class="{ active: isSelecting }" @click="toggleSelect">
-        {{ isSelecting ? '取消' : '多选' }}
-      </text>
-    </view>
+  <view class="history-page">
+    <AppStatusBar />
+    <AppNavBar :title="selecting ? '我的作品' : '我的作品'" back @back="goBack">
+      <template #right>
+        <button class="manage-btn" @click="toggleSelect">{{ selecting ? '取消' : '管理' }}</button>
+      </template>
+    </AppNavBar>
+    <view class="count">{{ selecting ? `已选择${selectedIds.length}个` : `共计${total || items.length}个` }}</view>
 
-    <!-- 筛选标签 -->
-    <view class="filter-tabs">
-      <text
-        v-for="tab in tabs"
-        :key="tab.value"
-        class="tab"
-        :class="{ active: currentTab === tab.value }"
-        @click="switchTab(tab.value)"
-      >
-        {{ tab.label }}
-      </text>
-    </view>
-
-    <!-- 历史列表 -->
-    <scroll-view
-      class="history-scroll"
-      scroll-y
-      @scrolltolower="loadMore"
-      :lower-threshold="100"
-    >
-      <view class="history-grid">
+    <scroll-view class="history-scroll" scroll-y @scrolltolower="loadMore">
+      <view class="grid" :class="{ selecting }">
         <view
           v-for="item in items"
           :key="item.task_id"
-          class="history-item"
-          :class="{ selected: selectedIds.includes(item.task_id) }"
+          class="work-item"
           @click="handleItemClick(item)"
         >
-          <!-- 选择框 -->
-          <view v-if="isSelecting" class="checkbox">
-            <text v-if="selectedIds.includes(item.task_id)">✓</text>
-          </view>
-
-          <!-- 图片 -->
-          <image
-            v-if="item.image_url"
-            :src="item.image_url"
-            mode="aspectFill"
-            class="item-image"
-          />
-          <view v-else class="item-placeholder">
-            <text class="placeholder-text">{{ getStatusText(item.status) }}</text>
-          </view>
-
-          <!-- 信息 -->
-          <view class="item-info">
-            <text class="prompt">{{ item.prompt }}</text>
-            <text class="cost">消耗 {{ item.cost }} 算力</text>
+          <image v-if="item.image_url" :src="item.image_url" mode="aspectFill" />
+          <view v-else class="placeholder">{{ statusText(item.status) }}</view>
+          <view v-if="selecting" class="check">
+            <image
+              :src="selectedIds.includes(item.task_id) ? ASSETS.iconCheckSmall : ASSETS.iconRadioEmpty"
+              mode="aspectFit"
+            />
           </view>
         </view>
       </view>
-
-      <!-- 加载状态 -->
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
-      <view v-if="!hasMore && items.length > 0" class="no-more">
-        <text>没有更多了</text>
-      </view>
-      <view v-if="items.length === 0 && !loading" class="empty">
-        <text class="empty-icon">🎨</text>
-        <text class="empty-text">还没有作品，快去创作吧～</text>
-      </view>
+      <EmptyState v-if="items.length === 0 && !loading" title="暂无作品" description="生成完成的作品会保存在这里。" />
+      <view v-if="loading" class="loading">加载中...</view>
     </scroll-view>
 
-    <!-- 底部操作栏（多选模式） -->
-    <view v-if="isSelecting" class="action-bar">
-      <text class="selected-count">已选 {{ selectedIds.length }} 项</text>
-      <button class="delete-btn" :disabled="selectedIds.length === 0" @click="handleDelete">
+    <view v-if="selecting" class="batch-bar">
+      <view class="batch-action" @click="selectAll">
+        <text>✓</text>
+        <text>全选</text>
+      </view>
+      <view class="batch-action" @click="downloadSelected">
+        <text>↓</text>
+        <text>下载</text>
+      </view>
+      <view class="batch-action" @click="deleteSelected">
+        <text>□</text>
         <text>删除</text>
-      </button>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useHistoryStore } from '@/stores/historyStore'
-import type { HistoryItem } from '@/stores/historyStore'
-import { client } from '@/services/uniClient'
+import { onMounted, ref } from 'vue'
+import AppNavBar from '@/components/AppNavBar.vue'
+import AppStatusBar from '@/components/AppStatusBar.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { ASSETS } from '@/config/assets'
+import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
 
-const historyStore = useHistoryStore()
-
-const tabs = [
-  { label: '全部', value: 'all' },
-  { label: '图片', value: 'image' },
-  { label: '视频', value: 'video' },
-  { label: '灵感', value: 'inspiration' },
-]
-
-const currentTab = ref('all')
+const items = ref<TaskHistoryItem[]>([])
+const page = ref(1)
+const pageSize = 30
+const total = ref(0)
 const loading = ref(false)
 const hasMore = ref(true)
-const isSelecting = ref(false)
+const selecting = ref(false)
 const selectedIds = ref<string[]>([])
 
-const items = computed(() => historyStore.items)
+const goBack = () => uni.navigateBack()
 
-const goBack = () => {
-  uni.navigateBack()
-}
-
-const switchTab = (tab: string) => {
-  currentTab.value = tab
-  historyStore.reset()
-  loadHistory()
-}
-
-const toggleSelect = () => {
-  isSelecting.value = !isSelecting.value
-  if (!isSelecting.value) {
-    selectedIds.value = []
-  }
-}
-
-const handleItemClick = (item: HistoryItem) => {
-  if (isSelecting.value) {
-    // 多选模式：切换选中状态
-    const index = selectedIds.value.indexOf(item.task_id)
-    if (index > -1) {
-      selectedIds.value.splice(index, 1)
-    } else {
-      selectedIds.value.push(item.task_id)
-    }
-  } else {
-    // 普通模式：查看详情
-    if (item.status === 'success' && item.image_url) {
-      uni.navigateTo({
-        url: `/pages/task-result/task-result?taskId=${item.task_id}`,
-      })
-    } else {
-      uni.showToast({ title: '该作品生成失败', icon: 'none' })
-    }
-  }
-}
-
-const loadHistory = async () => {
-  if (loading.value || !hasMore.value) return
-
+const loadHistory = async (reset = false) => {
+  if (loading.value || (!hasMore.value && !reset)) return
   loading.value = true
   try {
-    const res = await client.GET('/aurakey/user/history', {
-      params: {
-        query: {
-          page: historyStore.currentPage,
-          pageSize: historyStore.pageSize,
-        },
-      },
-    })
-
-    if (res.data?.code === 200 && res.data.data) {
-      const { items: newItems, page } = res.data.data
-      if (page === 1) {
-        historyStore.setItems(newItems || [])
-      } else {
-        historyStore.appendItems(newItems || [])
-      }
-      historyStore.currentPage = page + 1
-      hasMore.value = (newItems?.length || 0) >= historyStore.pageSize
-    }
-  } catch (error) {
-    console.error('加载历史失败:', error)
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    const current = reset ? 1 : page.value
+    const data = await aurakeyApi.user.history(current, pageSize)
+    items.value = current === 1 ? data.items : items.value.concat(data.items)
+    total.value = data.total || items.value.length
+    page.value = current + 1
+    hasMore.value = data.items.length >= pageSize
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-const loadMore = () => {
-  loadHistory()
+const loadMore = () => loadHistory()
+
+const toggleSelect = () => {
+  selecting.value = !selecting.value
+  if (!selecting.value) selectedIds.value = []
 }
 
-const handleDelete = () => {
+const handleItemClick = (item: TaskHistoryItem) => {
+  if (selecting.value) {
+    const index = selectedIds.value.indexOf(item.task_id)
+    if (index >= 0) selectedIds.value.splice(index, 1)
+    else selectedIds.value.push(item.task_id)
+    return
+  }
+  uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${item.task_id}` })
+}
+
+const selectAll = () => {
+  selectedIds.value = selectedIds.value.length === items.value.length ? [] : items.value.map((item) => item.task_id)
+}
+
+const downloadSelected = () => {
+  uni.showToast({ title: '请逐张打开后保存高清图', icon: 'none' })
+}
+
+const deleteSelected = () => {
   if (selectedIds.value.length === 0) return
-
   uni.showModal({
-    title: '确认删除',
-    content: `确定要删除选中的 ${selectedIds.value.length} 项吗？`,
+    title: '删除作品',
+    content: `确认删除选中的 ${selectedIds.value.length} 个作品？`,
     success: async (res) => {
-      if (res.confirm) {
-        try {
-          // 批量删除
-          for (const taskId of selectedIds.value) {
-            await client.DELETE('/aurakey/user/history/{task_id}', {
-              params: {
-                path: {
-                  task_id: taskId,
-                },
-              },
-            })
-            historyStore.removeItem(taskId)
-          }
-
-          uni.showToast({ title: '删除成功', icon: 'success' })
-          selectedIds.value = []
-          isSelecting.value = false
-        } catch (error) {
-          console.error('删除失败:', error)
-          uni.showToast({ title: '删除失败', icon: 'none' })
+      if (!res.confirm) return
+      try {
+        for (const taskId of selectedIds.value) {
+          await aurakeyApi.user.deleteHistory(taskId)
         }
+        items.value = items.value.filter((item) => !selectedIds.value.includes(item.task_id))
+        selectedIds.value = []
+        selecting.value = false
+      } catch (error: any) {
+        uni.showToast({ title: error.message || '删除失败', icon: 'none' })
       }
     },
   })
 }
 
-const getStatusText = (status: string) => {
-  const statusMap: Record<string, string> = {
+const statusText = (status: string) => {
+  const map: Record<string, string> = {
     pending: '排队中',
     processing: '生成中',
-    failed: '失败',
+    failed: '生成失败',
   }
-  return statusMap[status] || '未知'
+  return map[status] || '暂无预览'
 }
 
 onMounted(() => {
-  loadHistory()
+  loadHistory(true)
 })
 </script>
 
 <style scoped lang="scss">
-.history-container {
-  width: 100%;
+.history-page {
   min-height: 100vh;
-  background: #0A0A0A;
-  padding-bottom: 120rpx;
+  background: #050506;
+  color: #fff;
 }
 
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 88rpx;
-  padding-top: env(safe-area-inset-top);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20rpx);
-  z-index: 100;
-
-  .nav-btn {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 32rpx;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40rpx;
-    color: #fff;
-  }
-
-  .nav-title {
-    font-size: 32rpx;
-    color: #fff;
-    font-weight: 500;
-  }
-
-  .nav-action {
-    font-size: 28rpx;
-    color: rgba(255, 255, 255, 0.6);
-
-    &.active {
-      color: #00D4FF;
-    }
-  }
+.manage-btn {
+  width: 100rpx;
+  height: 62rpx;
+  border-radius: 14rpx;
+  color: #fff;
+  font-size: 26rpx;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.filter-tabs {
-  position: fixed;
-  top: calc(88rpx + env(safe-area-inset-top));
-  left: 0;
-  right: 0;
-  height: 88rpx;
-  background: #0A0A0A;
-  display: flex;
-  align-items: center;
-  padding: 0 32rpx;
-  gap: 32rpx;
-  z-index: 99;
-
-  .tab {
-    font-size: 28rpx;
-    color: rgba(255, 255, 255, 0.6);
-    padding: 8rpx 0;
-    position: relative;
-
-    &.active {
-      color: #00D4FF;
-      font-weight: 500;
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 4rpx;
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-        border-radius: 2rpx;
-      }
-    }
-  }
+.count {
+  padding: 28rpx 34rpx 20rpx;
+  color: #fff;
+  font-size: 28rpx;
 }
 
 .history-scroll {
-  height: calc(100vh - 176rpx - env(safe-area-inset-top));
-  margin-top: calc(176rpx + env(safe-area-inset-top));
+  height: calc(100vh - 190rpx);
 }
 
-.history-grid {
+.grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-  padding: 24rpx;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+  padding: 0 34rpx 40rpx;
+}
 
-  .history-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16rpx;
-    overflow: hidden;
-    position: relative;
-    border: 2rpx solid transparent;
+.work-item {
+  position: relative;
+  height: 204rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #12141b;
 
-    &.selected {
-      border-color: #00D4FF;
-    }
-
-    .checkbox {
-      position: absolute;
-      top: 16rpx;
-      right: 16rpx;
-      width: 48rpx;
-      height: 48rpx;
-      border-radius: 24rpx;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(10rpx);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32rpx;
-      color: #00D4FF;
-      z-index: 10;
-      border: 2rpx solid rgba(255, 255, 255, 0.2);
-    }
-
-    .item-image {
-      width: 100%;
-      aspect-ratio: 1;
-      display: block;
-    }
-
-    .item-placeholder {
-      width: 100%;
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.03);
-
-      .placeholder-text {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.3);
-      }
-    }
-
-    .item-info {
-      padding: 16rpx;
-      display: flex;
-      flex-direction: column;
-      gap: 8rpx;
-
-      .prompt {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.8);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .cost {
-        font-size: 20rpx;
-        color: rgba(255, 255, 255, 0.4);
-      }
-    }
+  image {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
 }
 
-.loading,
-.no-more,
-.empty {
-  text-align: center;
-  padding: 40rpx;
-  color: rgba(255, 255, 255, 0.3);
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.42);
   font-size: 24rpx;
 }
 
-.empty {
-  padding-top: 120rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24rpx;
+.check {
+  position: absolute;
+  right: 12rpx;
+  top: 12rpx;
+  width: 38rpx;
+  height: 38rpx;
 
-  .empty-icon {
-    font-size: 120rpx;
-  }
-
-  .empty-text {
-    font-size: 28rpx;
+  image {
+    width: 100%;
+    height: 100%;
   }
 }
 
-.action-bar {
+.batch-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120rpx;
-  padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(18, 18, 18, 0.95);
-  backdrop-filter: blur(20rpx);
-  border-top: 1rpx solid rgba(255, 255, 255, 0.05);
+  left: 50%;
+  bottom: calc(46rpx + env(safe-area-inset-bottom));
+  width: 430rpx;
+  height: 104rpx;
+  transform: translateX(-50%);
+  border-radius: 999rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #12345a;
+  box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.36);
+}
+
+.batch-action {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  z-index: 100;
+  justify-content: center;
+  gap: 8rpx;
+  color: #fff;
+  font-size: 24rpx;
+}
 
-  .selected-count {
-    font-size: 28rpx;
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .delete-btn {
-    padding: 16rpx 48rpx;
-    background: rgba(255, 77, 79, 0.2);
-    border-radius: 24rpx;
-    border: none;
-    font-size: 28rpx;
-    color: #ff4d4f;
-    font-weight: 500;
-
-    &:disabled {
-      opacity: 0.5;
-    }
-  }
+.loading {
+  padding: 34rpx 0;
+  color: rgba(255, 255, 255, 0.36);
+  font-size: 24rpx;
+  text-align: center;
 }
 </style>

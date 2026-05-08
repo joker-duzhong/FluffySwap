@@ -1,22 +1,17 @@
 <template>
-  <view class="login-page">
-    <AppStatusBar />
-    <AppCapsule class="capsule" />
-    <view class="center">
+  <view class="sheet-mask" @click="$emit('close')">
+    <view class="sheet" @click.stop>
+      <view class="close" @click="$emit('close')">×</view>
       <image class="logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
-      <text class="title">立即登录</text>
-    </view>
-    <view class="sheet">
-      <image class="sheet-logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
-      <text class="sheet-title">欢迎使用灵钥</text>
+      <text class="title">欢迎使用灵钥</text>
       <text class="desc">首次注册需要授权手机号进行登录</text>
       <button class="login-btn" @click="handleLogin">授权登录</button>
       <view class="agreement" @click="agreed = !agreed">
         <view class="radio" :class="{ active: agreed }"></view>
         <text>已阅读并同意</text>
-        <text class="link">《用户协议》</text>
+        <text class="link" @click.stop="showAgreement('user')">《用户协议》</text>
         <text>和</text>
-        <text class="link">《隐私政策》</text>
+        <text class="link" @click.stop="showAgreement('privacy')">《隐私政策》</text>
       </view>
     </view>
   </view>
@@ -24,21 +19,33 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import AppCapsule from '@/components/AppCapsule.vue'
-import AppStatusBar from '@/components/AppStatusBar.vue'
 import { ASSETS } from '@/config/assets'
 import { WECHAT_CONFIG } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
 import { aurakeyApi } from '@/services/aurakey'
 
+const emit = defineEmits<{
+  (event: 'close'): void
+  (event: 'logged-in'): void
+}>()
+
 const authStore = useAuthStore()
 const agreed = ref(false)
+
+const showAgreement = (type: 'user' | 'privacy') => {
+  uni.showModal({
+    title: type === 'user' ? '用户协议' : '隐私政策',
+    content: '请以正式协议页面内容为准。',
+    showCancel: false,
+  })
+}
 
 const handleLogin = () => {
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
   }
+
   uni.showLoading({ title: '登录中...' })
   uni.login({
     provider: 'weixin',
@@ -46,9 +53,11 @@ const handleLogin = () => {
       try {
         const tokenRes = await aurakeyApi.auth.miniappLogin(WECHAT_CONFIG.APPID, loginRes.code)
         authStore.setToken(tokenRes.access_token)
-        authStore.setUserProfile(await aurakeyApi.user.profile())
+        const profile = await aurakeyApi.user.profile()
+        authStore.setUserProfile(profile)
         uni.hideLoading()
-        uni.navigateBack()
+        uni.showToast({ title: '登录成功', icon: 'success' })
+        emit('logged-in')
       } catch (error: any) {
         uni.hideLoading()
         uni.showToast({ title: error.message || '登录失败', icon: 'none' })
@@ -63,45 +72,18 @@ const handleLogin = () => {
 </script>
 
 <style scoped lang="scss">
-.login-page {
-  position: relative;
-  min-height: 100vh;
-  background: #050506;
-}
-
-.capsule {
-  position: absolute;
-  right: 24rpx;
-  top: 96rpx;
-}
-
-.center {
-  height: 450rpx;
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo {
-  width: 146rpx;
-  height: 146rpx;
-  border-radius: 50%;
-  box-shadow: 0 0 42rpx rgba(88, 88, 255, 0.38);
-}
-
-.title {
-  margin-top: 30rpx;
-  color: #fff;
-  font-size: 34rpx;
-  font-weight: 700;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.72);
 }
 
 .sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
   min-height: 548rpx;
   padding: 48rpx 38rpx calc(34rpx + env(safe-area-inset-bottom));
   border-radius: 32rpx 32rpx 0 0;
@@ -111,12 +93,21 @@ const handleLogin = () => {
   background: linear-gradient(180deg, rgba(29, 30, 41, 0.98), rgba(18, 18, 24, 0.98));
 }
 
-.sheet-logo {
-  width: 110rpx;
-  height: 110rpx;
+.close {
+  position: absolute;
+  right: 38rpx;
+  top: 36rpx;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 44rpx;
 }
 
-.sheet-title {
+.logo {
+  width: 110rpx;
+  height: 110rpx;
+  margin-top: 6rpx;
+}
+
+.title {
   margin-top: 38rpx;
   color: #fff;
   font-size: 32rpx;

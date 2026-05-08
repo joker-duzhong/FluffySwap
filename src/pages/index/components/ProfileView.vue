@@ -1,454 +1,432 @@
 <template>
-  <view class="profile-container">
-    <!-- 用户信息卡片 -->
-    <view class="user-card">
-      <view class="user-info">
-        <image :src="userAvatar" class="avatar" />
-        <view class="info">
-          <view class="name-row">
-            <text class="nickname">{{ userNickname }}</text>
-            <view v-if="isVip" class="vip-badge">
-              <text>👑 {{ vipType }}</text>
-            </view>
-          </view>
-          <text class="motto">用 AI，创造无限可能 ✨</text>
+  <view class="profile-view">
+    <view class="top-glow"></view>
+    <AppStatusBar />
+    <view class="header">
+      <view class="balance-pill" @click="goRecharge">
+        <image :src="ASSETS.iconSpark" mode="aspectFit" />
+        <text>{{ balance }}</text>
+        <view class="divider"></view>
+        <text>充值</text>
+      </view>
+      <AppCapsule />
+    </view>
+
+    <view class="profile-card">
+      <view v-if="isLoggedIn" class="logged-user">
+        <view class="avatar-wrap">
+          <image class="avatar" :src="avatar" mode="aspectFill" />
+          <view class="edit-dot">✎</view>
         </view>
+        <text class="nickname">{{ nickname }}</text>
+        <text class="phone">{{ phoneText }}</text>
+      </view>
+      <view v-else class="login-entry" @click="showLoginSheet = true">
+        <image class="login-logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
+        <text>立即登录</text>
       </view>
     </view>
 
-    <!-- 资产中心 -->
-    <view class="asset-card">
-      <view class="asset-header">
-        <text class="title">资产中心</text>
-        <view class="icon">👁️</view>
+    <view class="vip-card" @click="goRecharge">
+      <view>
+        <text class="vip-title">会员中心·VIP</text>
+        <text class="vip-desc">每月超多灵感值，限时优惠</text>
       </view>
-      <view class="balance-section">
-        <view class="balance-info">
-          <text class="label">当前剩余：</text>
-          <text class="value">{{ balance }}</text>
-          <text class="unit">算力</text>
-        </view>
-        <button class="recharge-btn" @click="goRecharge">
-          <text>充值/升级</text>
-        </button>
-      </view>
+      <view class="vip-action">立即开通</view>
     </view>
 
-    <!-- 我的画廊预览 -->
-    <view class="gallery-preview">
+    <view class="works-section">
       <view class="section-header">
-        <text class="title">我的画廊</text>
+        <text>我的作品</text>
         <view class="more" @click="goHistory">
-          <text>管理</text>
-          <text class="arrow">›</text>
+          <text>更多</text>
+          <text class="chevron">›</text>
         </view>
       </view>
-      <view v-if="historyItems.length > 0" class="preview-grid">
+      <view v-if="works.length > 0" class="works-row">
         <image
-          v-for="item in historyItems.slice(0, 6)"
+          v-for="item in works.slice(0, 3)"
           :key="item.task_id"
-          :src="item.image_url"
-          class="preview-item"
+          :src="item.image_url || ASSETS.vipHero"
           mode="aspectFill"
-          @click="goHistory"
+          @click="openWork(item.task_id)"
         />
       </view>
-      <view v-else class="empty-gallery">
-        <text class="empty-text">还没有作品，快去创作吧～</text>
+      <view v-else class="empty-work">
+        <image :src="ASSETS.sparkLarge" mode="aspectFit" />
       </view>
     </view>
 
-    <!-- 功能列表 -->
     <view class="menu-list">
       <view class="menu-item" @click="goAssetLogs">
         <view class="menu-left">
-          <text class="menu-icon">📊</text>
-          <text class="menu-text">算力明细</text>
+          <image :src="ASSETS.iconWallet" mode="aspectFit" />
+          <text>积分明细</text>
         </view>
-        <view class="menu-right">
-          <text class="menu-desc">查看消费充值记录</text>
-          <text class="arrow">›</text>
-        </view>
+        <text class="arrow">›</text>
       </view>
-
       <view class="menu-item" @click="goInvite">
         <view class="menu-left">
-          <text class="menu-icon">🎁</text>
-          <text class="menu-text">邀请好友</text>
+          <image :src="ASSETS.iconGift" mode="aspectFit" />
+          <text>邀请好友</text>
         </view>
         <view class="menu-right">
-          <text class="menu-desc">邀请得算力</text>
+          <text>邀请好友双方各得</text>
+          <text class="highlight">10积分</text>
           <text class="arrow">›</text>
         </view>
       </view>
-
-      <view class="menu-item" @click="handleSignIn">
+      <view class="menu-item" @click="showAgreement('user')">
         <view class="menu-left">
-          <text class="menu-icon">📅</text>
-          <text class="menu-text">每日签到</text>
+          <text class="line-icon"></text>
+          <text>用户协议</text>
         </view>
-        <view class="menu-right">
-          <text class="menu-desc">{{ signInText }}</text>
-          <text class="arrow">›</text>
-        </view>
+        <text class="arrow">›</text>
       </view>
-
-      <view class="menu-item" @click="contactService">
+      <view class="menu-item" @click="logout">
         <view class="menu-left">
-          <text class="menu-icon">💬</text>
-          <text class="menu-text">联系客服</text>
+          <image :src="ASSETS.iconLogout" mode="aspectFit" />
+          <text>退出登录</text>
         </view>
-        <view class="menu-right">
-          <text class="menu-desc">在线客服/问题反馈</text>
-          <text class="arrow">›</text>
-        </view>
-      </view>
-
-      <view class="menu-item" @click="showAbout">
-        <view class="menu-left">
-          <text class="menu-icon">ℹ️</text>
-          <text class="menu-text">关于我们</text>
-        </view>
-        <view class="menu-right">
-          <text class="menu-desc">版本信息及免责声明</text>
-          <text class="arrow">›</text>
-        </view>
+        <text class="arrow">›</text>
       </view>
     </view>
+
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import AppCapsule from '@/components/AppCapsule.vue'
+import AppStatusBar from '@/components/AppStatusBar.vue'
+import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
 import { useHistoryStore } from '@/stores/historyStore'
-import { client } from '@/services/uniClient'
+import { aurakeyApi } from '@/services/aurakey'
+import LoginSheet from './LoginSheet.vue'
 
 const authStore = useAuthStore()
 const historyStore = useHistoryStore()
+const showLoginSheet = ref(false)
 
-const userAvatar = computed(() => authStore.userProfile?.avatar || '/static/default-avatar.png')
-const userNickname = computed(() => authStore.userProfile?.nickname || '未登录')
-const isVip = computed(() => authStore.isVip)
-const vipType = computed(() => authStore.userProfile?.type || '普通会员')
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 const balance = computed(() => authStore.balance)
-const historyItems = computed(() => historyStore.items)
+const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
+const nickname = computed(() => authStore.userProfile?.nickname || 'UserName_111')
+const phoneText = computed(() => authStore.userProfile?.phone || '13143214321')
+const works = computed(() => historyStore.items)
 
-const signInText = ref('签到领算力')
-const hasSignedToday = ref(false)
+const goRecharge = () => uni.navigateTo({ url: '/pages/recharge/recharge' })
+const goHistory = () => uni.navigateTo({ url: '/pages/history/history' })
+const goAssetLogs = () => uni.navigateTo({ url: '/pages/asset-logs/asset-logs' })
+const goInvite = () => uni.navigateTo({ url: '/pages/invite/invite' })
+const openWork = (taskId: string) => uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${taskId}` })
 
-const goRecharge = () => {
-  uni.navigateTo({ url: '/pages/recharge/recharge' })
+const showAgreement = (type: 'user' | 'privacy') => {
+  uni.showModal({
+    title: type === 'user' ? '用户协议' : '隐私政策',
+    content: '请以正式协议页面内容为准。',
+    showCancel: false,
+  })
 }
 
-const goHistory = () => {
-  uni.navigateTo({ url: '/pages/history/history' })
-}
-
-const goAssetLogs = () => {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
-}
-
-const goInvite = () => {
-  uni.navigateTo({ url: '/pages/invite/invite' })
-}
-
-const handleSignIn = async () => {
-  if (hasSignedToday.value) {
-    uni.showToast({ title: '今日已签到', icon: 'none' })
+const logout = () => {
+  if (!authStore.isLoggedIn) {
+    showLoginSheet.value = true
     return
   }
+  authStore.clearAuth()
+  historyStore.reset()
+  uni.showToast({ title: '已退出登录', icon: 'none' })
+}
 
+const handleLoggedIn = () => {
+  showLoginSheet.value = false
+  loadData()
+}
+
+const loadData = async () => {
+  if (!authStore.isLoggedIn) return
   try {
-    const res = await client.POST('/aurakey/user/sign-in')
-    if (res.data?.code === 200 && res.data.data) {
-      const { reward_points, continuous_days } = res.data.data
-      hasSignedToday.value = true
-      signInText.value = '今日已签到'
-
-      uni.showToast({
-        title: `签到成功！获得 ${reward_points} 算力`,
-        icon: 'success',
-      })
-
-      // 更新余额
-      authStore.updateBalance(balance.value + reward_points)
-    }
-  } catch (error: any) {
-    if (error.message?.includes('已签到')) {
-      hasSignedToday.value = true
-      signInText.value = '今日已签到'
-    }
-    uni.showToast({ title: error.message || '签到失败', icon: 'none' })
-  }
-}
-
-const contactService = () => {
-  uni.showModal({
-    title: '联系客服',
-    content: '请添加客服微信：aurakey_service',
-    showCancel: false,
-  })
-}
-
-const showAbout = () => {
-  uni.showModal({
-    title: '关于我们',
-    content: 'AI 魔法师 v1.0.0\n\n本应用使用 AI 技术生成图像，生成内容仅供参考。',
-    showCancel: false,
-  })
-}
-
-// 加载用户信息和历史记录
-const loadUserData = async () => {
-  try {
-    // 加载用户信息
-    const profileRes = await client.GET('/aurakey/user/profile')
-    if (profileRes.data?.code === 200 && profileRes.data.data) {
-      authStore.setUserProfile(profileRes.data.data)
-    }
-
-    // 加载历史记录（前6条）
-    const historyRes = await client.GET('/aurakey/user/history', {
-      params: {
-        query: {
-          page: 1,
-          pageSize: 6,
-        },
-      },
-    })
-    if (historyRes.data?.code === 200 && historyRes.data.data) {
-      historyStore.setItems(historyRes.data.data.items || [])
-    }
+    const [profile, history] = await Promise.all([
+      aurakeyApi.user.profile(),
+      aurakeyApi.user.history(1, 6),
+    ])
+    authStore.setUserProfile(profile)
+    historyStore.setItems(history.items)
   } catch (error) {
-    console.error('加载用户数据失败:', error)
+    console.error('加载我的页面失败:', error)
   }
 }
 
 onMounted(() => {
-  if (authStore.isLoggedIn) {
-    loadUserData()
-  }
+  loadData()
 })
 </script>
 
 <style scoped lang="scss">
-.profile-container {
-  width: 100%;
+.profile-view {
+  position: relative;
   min-height: 100vh;
-  background: #0A0A0A;
-  padding: 80rpx 32rpx 32rpx;
+  background: #050506;
+  padding-bottom: 166rpx;
+  overflow: hidden;
 }
 
-.user-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20rpx);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
+.top-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360rpx;
+  height: 260rpx;
+  background: radial-gradient(circle at 0 0, rgba(31, 111, 255, 0.22), transparent 68%);
+}
 
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 24rpx;
+.header {
+  position: relative;
+  z-index: 1;
+  height: 82rpx;
+  padding: 0 24rpx 0 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-    .avatar {
-      width: 120rpx;
-      height: 120rpx;
-      border-radius: 60rpx;
-      border: 4rpx solid rgba(0, 212, 255, 0.3);
-    }
+.balance-pill {
+  height: 56rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: #fff;
+  font-size: 28rpx;
+  background: rgba(255, 255, 255, 0.13);
 
-    .info {
-      flex: 1;
+  image {
+    width: 22rpx;
+    height: 22rpx;
+  }
 
-      .name-row {
-        display: flex;
-        align-items: center;
-        gap: 12rpx;
-        margin-bottom: 12rpx;
-
-        .nickname {
-          font-size: 36rpx;
-          font-weight: bold;
-          color: #fff;
-        }
-
-        .vip-badge {
-          padding: 4rpx 12rpx;
-          background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-          border-radius: 8rpx;
-          font-size: 20rpx;
-          color: #000;
-          font-weight: bold;
-        }
-      }
-
-      .motto {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.6);
-      }
-    }
+  .divider {
+    width: 1rpx;
+    height: 28rpx;
+    background: rgba(255, 255, 255, 0.22);
   }
 }
 
-.asset-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20rpx);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
+.profile-card {
+  min-height: 310rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .asset-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24rpx;
+.login-entry,
+.logged-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-    .title {
-      font-size: 28rpx;
-      color: rgba(255, 255, 255, 0.8);
-    }
+.login-logo {
+  width: 148rpx;
+  height: 148rpx;
+  margin-bottom: 28rpx;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1rpx rgba(255, 255, 255, 0.16), 0 0 42rpx rgba(88, 88, 255, 0.38);
+}
 
-    .icon {
-      font-size: 32rpx;
-    }
-  }
+.login-entry text {
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 700;
+}
 
-  .balance-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.avatar-wrap {
+  position: relative;
+}
 
-    .balance-info {
-      display: flex;
-      align-items: baseline;
-      gap: 8rpx;
+.avatar {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 50%;
+}
 
-      .label {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.6);
-      }
+.edit-dot {
+  position: absolute;
+  right: -5rpx;
+  bottom: 8rpx;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 22rpx;
+  background: rgba(36, 36, 44, 0.92);
+  border: 2rpx solid rgba(255, 255, 255, 0.42);
+}
 
-      .value {
-        font-size: 56rpx;
-        font-weight: bold;
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+.nickname {
+  margin-top: 26rpx;
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 700;
+}
 
-      .unit {
-        font-size: 28rpx;
-        color: rgba(255, 255, 255, 0.6);
-      }
-    }
+.phone {
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 24rpx;
+}
 
-    .recharge-btn {
-      padding: 16rpx 32rpx;
-      background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-      border-radius: 24rpx;
-      border: none;
-      font-size: 28rpx;
-      color: #fff;
-      font-weight: 500;
-    }
+.vip-card {
+  height: 132rpx;
+  margin: 0 34rpx 38rpx;
+  padding: 30rpx 36rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(65, 76, 155, 0.8), rgba(111, 65, 109, 0.82));
+  border: 1rpx solid rgba(221, 201, 255, 0.3);
+}
+
+.vip-title,
+.vip-desc {
+  display: block;
+}
+
+.vip-title {
+  color: #eee6ff;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.vip-desc {
+  margin-top: 12rpx;
+  color: #c8c1e5;
+  font-size: 24rpx;
+}
+
+.vip-action {
+  width: 126rpx;
+  height: 56rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #442c86;
+  font-size: 24rpx;
+  font-weight: 700;
+  background: #eadbff;
+}
+
+.works-section {
+  margin: 0 34rpx 38rpx;
+}
+
+.section-header {
+  height: 46rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 26rpx;
+}
+
+.chevron,
+.arrow {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+.works-row {
+  margin-top: 20rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+
+  image {
+    width: 100%;
+    height: 156rpx;
+    border-radius: 12rpx;
+    background: #11131a;
   }
 }
 
-.gallery-preview {
-  margin-bottom: 24rpx;
+.empty-work {
+  height: 236rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16rpx;
-
-    .title {
-      font-size: 32rpx;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .more {
-      display: flex;
-      align-items: center;
-      gap: 4rpx;
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.6);
-
-      .arrow {
-        font-size: 32rpx;
-      }
-    }
-  }
-
-  .preview-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12rpx;
-
-    .preview-item {
-      width: 100%;
-      aspect-ratio: 1;
-      border-radius: 12rpx;
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
-
-  .empty-gallery {
-    padding: 80rpx 0;
-    text-align: center;
-
-    .empty-text {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.3);
-    }
+  image {
+    width: 112rpx;
+    height: 112rpx;
+    opacity: 0.45;
   }
 }
 
 .menu-list {
-  .menu-item {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20rpx);
-    border-radius: 16rpx;
-    padding: 32rpx;
-    margin-bottom: 16rpx;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  margin: 0 34rpx;
+  padding: 28rpx 0;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.07);
+}
 
-    .menu-left {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
+.menu-item {
+  height: 86rpx;
+  padding: 0 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-      .menu-icon {
-        font-size: 40rpx;
-      }
+.menu-left,
+.menu-right {
+  display: flex;
+  align-items: center;
+}
 
-      .menu-text {
-        font-size: 28rpx;
-        color: #fff;
-      }
-    }
+.menu-left {
+  gap: 20rpx;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 28rpx;
 
-    .menu-right {
-      display: flex;
-      align-items: center;
-      gap: 8rpx;
-
-      .menu-desc {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.4);
-      }
-
-      .arrow {
-        font-size: 32rpx;
-        color: rgba(255, 255, 255, 0.3);
-      }
-    }
+  image {
+    width: 30rpx;
+    height: 30rpx;
   }
+}
+
+.line-icon {
+  width: 24rpx;
+  height: 32rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.82);
+  border-radius: 3rpx;
+}
+
+.menu-right {
+  gap: 0;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 22rpx;
+}
+
+.highlight {
+  color: #52f7ff;
 }
 </style>

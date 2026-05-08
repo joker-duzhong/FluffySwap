@@ -3,22 +3,15 @@
  */
 import { defineStore } from 'pinia'
 
-export type TabName = 'discover' | 'create' | 'works' | 'profile'
+export type TabName = 'template' | 'profile'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
-    currentTab: 'discover' as TabName,
-    isCreating: false, // 是否正在创作（显示创作面板）
+    currentTab: 'template' as TabName,
   }),
   actions: {
     setTab(tab: TabName) {
       this.currentTab = tab
-    },
-    showCreatePanel() {
-      this.isCreating = true
-    },
-    hideCreatePanel() {
-      this.isCreating = false
     },
   },
 })

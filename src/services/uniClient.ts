@@ -17,6 +17,11 @@ interface Response<T = any> {
   response?: any
 }
 
+type ClientConfig = {
+  baseUrl?: string
+  headers?: Record<string, string>
+}
+
 class UniClient {
   private baseUrl: string = ''
   private defaultHeaders: Record<string, string> = {}
@@ -26,7 +31,7 @@ class UniClient {
     onRejected?: (error: any) => any
   }
 
-  setConfig(config: { baseUrl?: string; headers?: Record<string, string> }) {
+  setConfig(config: ClientConfig) {
     if (config.baseUrl) {
       this.baseUrl = config.baseUrl
     }

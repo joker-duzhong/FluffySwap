@@ -1,225 +1,183 @@
 <template>
-  <view class="result-container">
-    <!-- 顶部导航 -->
-    <view class="nav-bar">
-      <view class="nav-btn" @click="goBack">
-        <text>‹</text>
-      </view>
-      <text class="nav-title">{{ navTitle }}</text>
-      <view class="nav-btn" style="opacity: 0"></view>
-    </view>
+  <view class="task-page">
+    <AppStatusBar />
+    <AppNavBar :title="pageTitle" :back="mode !== 'create'" @back="goBack">
+      <template #left>
+        <view v-if="mode === 'create'" class="nav-spacer"></view>
+      </template>
+      <template #right>
+        <AppCapsule v-if="mode !== 'create'" />
+      </template>
+    </AppNavBar>
 
-    <!-- 生成中状态 -->
-    <view v-if="isGenerating" class="generating-section">
-      <!-- 流光骨架屏 -->
-      <view class="skeleton-image">
-        <view class="shimmer"></view>
-      </view>
+    <scroll-view v-if="mode === 'create'" class="create-scroll" scroll-y>
+      <view class="create-spacer"></view>
+    </scroll-view>
 
-      <!-- 进度条 -->
-      <view class="progress-section">
-        <view class="progress-bar">
-          <view class="progress-fill" :style="{ width: progress + '%' }"></view>
-        </view>
-        <text class="progress-text">{{ progress }}%</text>
-      </view>
-
-      <!-- 动态提示 -->
-      <view class="tips-section">
-        <text class="tip-text">{{ currentTip }}</text>
+    <view v-else-if="isGenerating" class="generating">
+      <view class="skeleton"></view>
+      <view class="progress-card">
+        <text class="percent">{{ progress }}%</text>
+        <text>AI绘图中...</text>
       </view>
     </view>
 
-    <!-- 生成失败 -->
-    <view v-else-if="isFailed" class="failed-section">
-      <text class="failed-icon">😢</text>
+    <view v-else-if="isFailed" class="failed">
       <text class="failed-title">生成失败</text>
-      <text class="failed-reason">{{ failedReason }}</text>
-      <button class="retry-btn" @click="goBack">
-        <text>返回重试</text>
-      </button>
+      <text class="failed-desc">{{ failedReason }}</text>
     </view>
 
-    <!-- 生成成功 -->
-    <view v-else-if="isSuccess" class="success-section">
-      <!-- 图片展示 -->
-      <view class="image-wrapper">
-        <image
-          :src="imageUrl"
-          mode="widthFix"
-          class="result-image"
-          @click="previewImage"
-        />
-      </view>
-
-      <!-- 操作按钮 -->
-      <view class="actions-section">
-        <view class="action-row">
-          <button class="action-btn secondary" @click="handleDownload">
-            <text class="btn-icon">⬇️</text>
-            <text class="btn-text">保存</text>
-            <text class="btn-desc">{{ isVip ? '高清无水印' : '带水印' }}</text>
-          </button>
-          <button class="action-btn secondary" @click="handleRegenerate">
-            <text class="btn-icon">🔄</text>
-            <text class="btn-text">重新生成</text>
-            <text class="btn-desc">再抽一张</text>
-          </button>
+    <scroll-view v-else class="result-scroll" scroll-y>
+      <view v-if="resultImage" class="result-card">
+        <image class="result-image" :src="resultImage" mode="widthFix" @click="previewImage" />
+        <view class="result-actions">
+          <button @click="handleRegenerate">重新编辑</button>
+          <button @click="handleRegenerate">再次生成</button>
+          <button @click="handleDownload">保存</button>
+          <button @click="showSharePoster = true">分享海报</button>
         </view>
-
-        <button class="action-btn primary" @click="handleShare">
-          <text class="btn-text">📤 生成分享海报</text>
-        </button>
-
-        <button class="action-btn outline" @click="handlePublish">
-          <text class="btn-text">发布到广场</text>
-        </button>
       </view>
-    </view>
+      <EmptyState v-else title="暂无结果" description="输入提示词后开始生成。" />
+    </scroll-view>
+
+    <GenerationComposer
+      v-if="mode === 'create' || isSuccess"
+      v-model:prompt="prompt"
+      :model-name="selectedModelName"
+      :ratio="selectedRatio"
+      :can-send="canSend"
+      :expanded="mode === 'create'"
+      @send="handleGenerate"
+      @focus="mode = 'create'"
+      @upload="chooseImage"
+      @model="showModelPicker"
+      @ratio="showRatioPicker"
+    />
+    <WorkSharePoster
+      v-if="showSharePoster && resultImage"
+      :image-url="resultImage"
+      :prompt="prompt"
+      :task-id="taskId"
+      @close="showSharePoster = false"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import AppCapsule from '@/components/AppCapsule.vue'
+import AppNavBar from '@/components/AppNavBar.vue'
+import AppStatusBar from '@/components/AppStatusBar.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { ASPECT_RATIOS } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
-import { LOADING_TIPS } from '@/config'
-import { client } from '@/services/uniClient'
+import { useTaskStore } from '@/stores/taskStore'
+import { aurakeyApi, type TaskModelOption } from '@/services/aurakey'
+import GenerationComposer from './components/GenerationComposer.vue'
+import WorkSharePoster from './components/WorkSharePoster.vue'
 
 const authStore = useAuthStore()
+const taskStore = useTaskStore()
 
+const mode = ref<'create' | 'result'>('result')
 const taskId = ref('')
 const status = ref<'pending' | 'processing' | 'success' | 'failed'>('pending')
 const progress = ref(0)
-const imageUrl = ref('')
+const resultImage = ref('')
 const failedReason = ref('')
-const currentTip = ref('')
+const options = ref<TaskModelOption[]>([])
+const ratios = ref<string[]>(ASPECT_RATIOS.map((item) => item.value))
+const showSharePoster = ref(false)
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
-let pollTimer: any = null
-let tipTimer: any = null
+const prompt = computed({
+  get: () => taskStore.prompt,
+  set: (value) => taskStore.setPrompt(value),
+})
+const selectedRatio = computed(() => taskStore.selectedRatio)
+const selectedModel = computed(() => taskStore.selectedModel)
+const selectedModelName = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.name || selectedModel.value || 'gpt-image-2')
+const selectedCost = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.cost || 0)
+const canSend = computed(() => Boolean(prompt.value.trim()) && Boolean(selectedModel.value))
 
 const isGenerating = computed(() => status.value === 'pending' || status.value === 'processing')
-const isSuccess = computed(() => status.value === 'success')
+const isSuccess = computed(() => status.value === 'success' || Boolean(resultImage.value))
 const isFailed = computed(() => status.value === 'failed')
-const isVip = computed(() => authStore.isVip)
+const pageTitle = computed(() => mode.value === 'create' ? '' : 'Title text')
 
-const navTitle = computed(() => {
-  if (isGenerating.value) return 'AI 正在创作中'
-  if (isSuccess.value) return '生成成功'
-  if (isFailed.value) return '生成失败'
-  return ''
-})
+const goBack = () => uni.navigateBack()
 
-const goBack = () => {
-  uni.navigateBack()
+const getPageOption = (key: string) => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1] as any
+  return currentPage?.options?.[key] || ''
 }
 
-const previewImage = () => {
-  if (imageUrl.value) {
-    uni.previewImage({
-      urls: [imageUrl.value],
-      current: 0,
-    })
+const loadOptions = async () => {
+  try {
+    const data = await aurakeyApi.task.options()
+    options.value = data.models || []
+    ratios.value = data.aspect_ratios?.length ? data.aspect_ratios : ratios.value
+    taskStore.setOptions(data)
+  } catch (error) {
+    console.error('加载生成选项失败:', error)
   }
 }
 
-const handleDownload = () => {
-  if (!imageUrl.value) return
+const handleGenerate = async () => {
+  if (!prompt.value.trim()) {
+    uni.showToast({ title: '请输入提示词', icon: 'none' })
+    return
+  }
+  if (!authStore.isLoggedIn) {
+    uni.navigateTo({ url: '/pages/login/login' })
+    return
+  }
+  if (selectedCost.value > 0 && authStore.balance < selectedCost.value) {
+    uni.navigateTo({ url: '/pages/recharge/recharge' })
+    return
+  }
 
-  uni.showLoading({ title: '保存中...' })
-  uni.downloadFile({
-    url: imageUrl.value,
-    success: (res) => {
-      if (res.statusCode === 200) {
-        uni.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => {
-            uni.hideLoading()
-            uni.showToast({ title: '保存成功', icon: 'success' })
-          },
-          fail: () => {
-            uni.hideLoading()
-            uni.showToast({ title: '保存失败，请授权相册权限', icon: 'none' })
-          },
-        })
-      }
-    },
-    fail: () => {
-      uni.hideLoading()
-      uni.showToast({ title: '下载失败', icon: 'none' })
-    },
-  })
-}
-
-const handleRegenerate = () => {
-  uni.showModal({
-    title: '重新生成',
-    content: '将消耗算力重新生成一张图片，是否继续？',
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({ title: '功能开发中', icon: 'none' })
-      }
-    },
-  })
-}
-
-const handleShare = () => {
-  uni.showToast({ title: '分享海报功能开发中', icon: 'none' })
-}
-
-const handlePublish = async () => {
   try {
-    const res = await client.POST('/aurakey/user/history/{task_id}/publish', {
-      params: {
-        path: {
-          task_id: taskId.value,
-        },
-      },
+    const task = await aurakeyApi.task.generate({
+      prompt: prompt.value.trim(),
+      model_name: selectedModel.value,
+      aspect_ratio: selectedRatio.value,
     })
-
-    if (res.data?.code === 200) {
-      uni.showToast({ title: '发布成功', icon: 'success' })
-    }
-  } catch (error) {
-    console.error('发布失败:', error)
-    uni.showToast({ title: '发布失败', icon: 'none' })
+    authStore.updateBalance(task.balance_after)
+    taskId.value = task.task_id
+    mode.value = 'result'
+    status.value = 'pending'
+    progress.value = 0
+    startPolling()
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '生成失败', icon: 'none' })
   }
 }
 
-// 轮询任务状态
-const pollTaskStatus = async () => {
+const pollTask = async () => {
+  if (!taskId.value) return
   try {
-    const res = await client.GET('/aurakey/task/status/{task_id}', {
-      params: {
-        path: {
-          task_id: taskId.value,
-        },
-      },
-    })
-
-    if (res.data?.code === 200 && res.data.data) {
-      const { status: taskStatus, progress: taskProgress, image_url, failed_reason } = res.data.data
-
-      status.value = taskStatus
-      progress.value = taskProgress || 0
-
-      if (taskStatus === 'success' && image_url) {
-        imageUrl.value = image_url
-        stopPolling()
-      } else if (taskStatus === 'failed') {
-        failedReason.value = failed_reason || '生成失败，请重试'
-        stopPolling()
-      }
+    const data = await aurakeyApi.task.status(taskId.value)
+    status.value = data.status as any
+    progress.value = data.progress || 0
+    if (data.status === 'success' && data.image_url) {
+      resultImage.value = data.image_url
+      stopPolling()
+    }
+    if (data.status === 'failed') {
+      failedReason.value = data.failed_reason || '生成失败，请重试'
+      stopPolling()
     }
   } catch (error) {
-    console.error('轮询失败:', error)
+    console.error('轮询任务失败:', error)
   }
 }
 
 const startPolling = () => {
-  pollTaskStatus()
-  pollTimer = setInterval(() => {
-    pollTaskStatus()
-  }, 2000)
+  stopPolling()
+  pollTask()
+  pollTimer = setInterval(pollTask, 2000)
 }
 
 const stopPolling = () => {
@@ -229,274 +187,174 @@ const stopPolling = () => {
   }
 }
 
-// 切换提示语
-const startTipRotation = () => {
-  const updateTip = () => {
-    const randomIndex = Math.floor(Math.random() * LOADING_TIPS.length)
-    currentTip.value = LOADING_TIPS[randomIndex]
-  }
-
-  updateTip()
-  tipTimer = setInterval(updateTip, 3000)
+const previewImage = () => {
+  if (resultImage.value) uni.previewImage({ urls: [resultImage.value] })
 }
 
-const stopTipRotation = () => {
-  if (tipTimer) {
-    clearInterval(tipTimer)
-    tipTimer = null
-  }
+const handleDownload = () => {
+  if (!resultImage.value) return
+  uni.downloadFile({
+    url: resultImage.value,
+    success: (res) => {
+      if (res.statusCode === 200) {
+        uni.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: () => uni.showToast({ title: '保存成功', icon: 'success' }),
+          fail: () => uni.showToast({ title: '保存失败，请授权相册', icon: 'none' }),
+        })
+      }
+    },
+  })
 }
 
-onMounted(() => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1] as any
-  taskId.value = currentPage.options?.taskId || ''
+const handleRegenerate = () => {
+  mode.value = 'create'
+}
 
-  if (taskId.value) {
+const chooseImage = () => {
+  uni.chooseImage({
+    count: 1,
+    success: () => uni.showToast({ title: '参考图已选择，接口字段预留', icon: 'none' }),
+  })
+}
+
+const showModelPicker = () => {
+  if (options.value.length === 0) return
+  uni.showActionSheet({
+    itemList: options.value.map((item) => item.name),
+    success: (res) => {
+      const model = options.value[res.tapIndex]
+      if (model) taskStore.setModel(model.model_id)
+    },
+  })
+}
+
+const showRatioPicker = () => {
+  uni.showActionSheet({
+    itemList: ratios.value,
+    success: (res) => {
+      taskStore.setRatio(ratios.value[res.tapIndex])
+    },
+  })
+}
+
+onMounted(async () => {
+  await loadOptions()
+  const routeMode = getPageOption('mode')
+  const routeTaskId = getPageOption('taskId')
+  mode.value = routeMode === 'create' || !routeTaskId ? 'create' : 'result'
+  if (routeTaskId) {
+    taskId.value = routeTaskId
     startPolling()
-    startTipRotation()
   }
 })
 
 onUnmounted(() => {
   stopPolling()
-  stopTipRotation()
 })
 </script>
 
 <style scoped lang="scss">
-.result-container {
-  width: 100%;
+.task-page {
   min-height: 100vh;
-  background: #0A0A0A;
+  background: #050506;
+  color: #fff;
 }
 
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 88rpx;
-  padding-top: env(safe-area-inset-top);
+.nav-spacer {
+  width: 1rpx;
+  height: 1rpx;
+}
+
+.create-scroll,
+.result-scroll {
+  height: calc(100vh - 160rpx);
+}
+
+.create-spacer {
+  min-height: 60vh;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.06), transparent 46%);
+}
+
+.generating {
+  padding: 170rpx 0 0;
+}
+
+.skeleton {
+  width: 100%;
+  height: 620rpx;
+  background: linear-gradient(115deg, #111 0%, #1b1b1f 42%, #101010 100%);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.progress-card {
+  margin: 36rpx 34rpx;
+  height: 210rpx;
+  border-radius: 18rpx;
+  padding: 34rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20rpx);
-  z-index: 100;
-
-  .nav-btn {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 32rpx;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40rpx;
-    color: #fff;
-  }
-
-  .nav-title {
-    font-size: 32rpx;
-    color: #fff;
-    font-weight: 500;
-  }
+  flex-direction: column;
+  justify-content: flex-end;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.generating-section {
-  padding-top: calc(88rpx + env(safe-area-inset-top) + 80rpx);
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-
-  .skeleton-image {
-    width: 100%;
-    aspect-ratio: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 24rpx;
-    position: relative;
-    overflow: hidden;
-
-    .shimmer {
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(0, 212, 255, 0.2) 50%,
-        transparent 100%
-      );
-      animation: shimmer 2s infinite;
-    }
-  }
-
-  @keyframes shimmer {
-    0% {
-      left: -100%;
-    }
-    100% {
-      left: 100%;
-    }
-  }
-
-  .progress-section {
-    margin-top: 48rpx;
-    display: flex;
-    align-items: center;
-    gap: 24rpx;
-
-    .progress-bar {
-      flex: 1;
-      height: 8rpx;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4rpx;
-      overflow: hidden;
-
-      .progress-fill {
-        height: 100%;
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-        transition: width 0.3s;
-      }
-    }
-
-    .progress-text {
-      font-size: 28rpx;
-      color: #00D4FF;
-      font-weight: 500;
-      min-width: 80rpx;
-      text-align: right;
-    }
-  }
-
-  .tips-section {
-    margin-top: 48rpx;
-    text-align: center;
-
-    .tip-text {
-      font-size: 28rpx;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.6;
-    }
-  }
+.percent {
+  color: #fff;
+  font-size: 38rpx;
+  font-weight: 800;
 }
 
-.failed-section {
-  padding-top: calc(88rpx + env(safe-area-inset-top) + 120rpx);
+.failed {
+  padding-top: 300rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32rpx;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-
-  .failed-icon {
-    font-size: 120rpx;
-  }
-
-  .failed-title {
-    font-size: 40rpx;
-    color: #fff;
-    font-weight: bold;
-  }
-
-  .failed-reason {
-    font-size: 28rpx;
-    color: rgba(255, 255, 255, 0.6);
-    text-align: center;
-    line-height: 1.6;
-  }
-
-  .retry-btn {
-    margin-top: 32rpx;
-    padding: 24rpx 64rpx;
-    background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-    border-radius: 48rpx;
-    border: none;
-    font-size: 32rpx;
-    color: #fff;
-    font-weight: 500;
-  }
+  gap: 18rpx;
 }
 
-.success-section {
-  padding-top: calc(88rpx + env(safe-area-inset-top) + 32rpx);
-  padding-bottom: 32rpx;
+.failed-title {
+  font-size: 36rpx;
+  font-weight: 800;
+}
 
-  .image-wrapper {
-    width: 100%;
-    padding: 0 32rpx;
+.failed-desc {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 26rpx;
+}
 
-    .result-image {
-      width: 100%;
-      border-radius: 24rpx;
-      display: block;
-    }
-  }
+.result-card {
+  padding: 20rpx 22rpx 170rpx;
+}
 
-  .actions-section {
-    padding: 32rpx;
-    display: flex;
-    flex-direction: column;
-    gap: 16rpx;
+.result-image {
+  width: 100%;
+  border-radius: 12rpx;
+  display: block;
+}
 
-    .action-row {
-      display: flex;
-      gap: 16rpx;
-    }
+.result-actions {
+  margin-top: 18rpx;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10rpx;
 
-    .action-btn {
-      flex: 1;
-      padding: 24rpx;
-      border-radius: 24rpx;
-      border: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8rpx;
-
-      &.primary {
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-
-        .btn-text {
-          color: #fff;
-          font-size: 32rpx;
-          font-weight: 500;
-        }
-      }
-
-      &.secondary {
-        background: rgba(255, 255, 255, 0.08);
-
-        .btn-icon {
-          font-size: 40rpx;
-        }
-
-        .btn-text {
-          color: #fff;
-          font-size: 28rpx;
-        }
-
-        .btn-desc {
-          color: rgba(255, 255, 255, 0.4);
-          font-size: 20rpx;
-        }
-      }
-
-      &.outline {
-        background: transparent;
-        border: 2rpx solid rgba(255, 255, 255, 0.2);
-
-        .btn-text {
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 28rpx;
-        }
-      }
-    }
+  button {
+    height: 54rpx;
+    padding: 0 8rpx;
+    border-radius: 8rpx;
+    color: #fff;
+    font-size: 22rpx;
+    background: rgba(255, 255, 255, 0.12);
   }
 }
 </style>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useAuthStore } from "@/stores/authStore";
-import { configureClient, client } from "@/services/api";
+import { configureClient } from "@/services/clientConfig";
+import { aurakeyApi } from "@/services/aurakey";
 
 const authStore = useAuthStore();
 
@@ -33,11 +34,9 @@ onHide(() => {
  */
 async function refreshUserProfile() {
   try {
-    const res = await client.GET('/aurakey/user/profile');
-    if (res.data?.code === 200 && res.data.data) {
-      authStore.setUserProfile(res.data.data);
-      console.log('User profile refreshed');
-    }
+    const profile = await aurakeyApi.user.profile();
+    authStore.setUserProfile(profile);
+    console.log('User profile refreshed');
   } catch (error) {
     console.error('Failed to refresh user profile:', error);
     // 如果刷新失败（token 过期），清除登录状态

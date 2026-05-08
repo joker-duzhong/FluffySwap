@@ -3,17 +3,18 @@
  */
 import { defineStore } from 'pinia'
 import { STORAGE_KEYS } from '@/config'
+import { ASSETS } from '@/config/assets'
 
 export interface UserProfile {
   user_id: string
   nickname?: string | null
   avatar?: string | null
-  phone?: string
+  phone?: string | null
   openid?: string | null
   balance: number
   is_vip: boolean
   type: string
-  vip_expire_time?: number
+  vip_expire_time?: number | null
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -36,8 +37,8 @@ export const useAuthStore = defineStore('auth', {
     setUserProfile(profile: UserProfile) {
       const normalizedProfile = {
         ...profile,
-        nickname: profile.nickname || 'AI 魔法师',
-        avatar: profile.avatar || '/static/default-avatar.png',
+        nickname: profile.nickname || 'UserName_111',
+        avatar: profile.avatar || ASSETS.defaultAvatar,
         type: profile.type || '普通会员',
       }
       this.userProfile = normalizedProfile
@@ -66,6 +67,11 @@ export const useAuthStore = defineStore('auth', {
         this.userProfile.balance = balance
         uni.setStorageSync(STORAGE_KEYS.USER_INFO, this.userProfile)
       }
+    },
+    updateProfilePatch(patch: Partial<UserProfile>) {
+      if (!this.userProfile) return
+      this.userProfile = { ...this.userProfile, ...patch }
+      uni.setStorageSync(STORAGE_KEYS.USER_INFO, this.userProfile)
     },
   },
 })

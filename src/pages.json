@@ -31,7 +31,14 @@
 		{
 			"path": "pages/recharge/recharge",
 			"style": {
-				"navigationBarTitleText": "充值中心",
+				"navigationBarTitleText": "会员中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/asset-logs/asset-logs",
+			"style": {
+				"navigationBarTitleText": "积分明细",
 				"navigationStyle": "custom"
 			}
 		},

@@ -1,166 +1,101 @@
 <template>
-  <view class="invite-container">
-    <!-- 顶部导航 -->
-    <view class="nav-bar">
-      <view class="nav-btn" @click="goBack">
-        <text>‹</text>
-      </view>
-      <text class="nav-title">邀请好友</text>
-      <view class="nav-btn" style="opacity: 0"></view>
-    </view>
+  <view class="invite-page">
+    <AppStatusBar />
+    <AppNavBar title="邀请好友" back @back="goBack" />
 
-    <!-- 邀请卡片 -->
-    <view class="invite-card">
-      <text class="card-title">邀请好友，双方得算力</text>
-      <text class="card-desc">{{ ruleText }}</text>
-
-      <!-- 邀请码 -->
-      <view class="invite-code-section">
-        <text class="code-label">我的邀请码</text>
-        <view class="code-box">
-          <text class="code">{{ inviteCode }}</text>
-          <view class="copy-btn" @click="copyInviteCode">
-            <text>复制</text>
-          </view>
+    <view class="poster">
+      <view class="poster-bg"></view>
+      <view class="headline">
+        <view class="headline-row">
+          <text class="send">送你</text>
+          <text class="number">10</text>
+          <text class="send">枚灵感值</text>
         </view>
+        <view class="swirl"></view>
+      </view>
+      <view class="sub-title">
+        <text>体验 </text>
+        <text class="brand">Image-2</text>
+        <text> 引擎</text>
+        <text>驱动的精准创作</text>
       </view>
 
-      <!-- 统计数据 -->
-      <view class="stats-section">
-        <view class="stat-item">
-          <text class="stat-value">{{ invitedCount }}</text>
-          <text class="stat-label">已邀请人数</text>
+      <view class="qr-card">
+        <view class="user-row">
+          <image class="avatar" :src="avatar" mode="aspectFill" />
+          <text>{{ nickname }}</text>
         </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <text class="stat-value">{{ totalRewardPoints }}</text>
-          <text class="stat-label">累计获得算力</text>
-        </view>
+        <text class="invite-text">邀请你体验新一代创作引擎</text>
+        <QrCodeGrid :value="qrValue" :size="350" />
       </view>
-    </view>
 
-    <!-- 邀请步骤 -->
-    <view class="steps-section">
-      <text class="section-title">邀请步骤</text>
-      <view class="steps-list">
-        <view class="step-item">
-          <view class="step-number">1</view>
-          <view class="step-content">
-            <text class="step-title">分享邀请码</text>
-            <text class="step-desc">将邀请码分享给好友</text>
+      <view class="steps">
+        <view class="step">
+          <view class="step-icon">
+            <text>▤</text>
           </view>
+          <text>1.扫描二维码</text>
         </view>
-        <view class="step-item">
-          <view class="step-number">2</view>
-          <view class="step-content">
-            <text class="step-title">好友注册</text>
-            <text class="step-desc">好友使用邀请码注册</text>
+        <view class="dots">⋯›</view>
+        <view class="step">
+          <view class="step-icon">
+            <text>◕</text>
           </view>
+          <text>2.注册登录</text>
         </view>
-        <view class="step-item">
-          <view class="step-number">3</view>
-          <view class="step-content">
-            <text class="step-title">双方得算力</text>
-            <text class="step-desc">双方各得 50 点算力奖励</text>
+        <view class="dots">⋯›</view>
+        <view class="step">
+          <view class="step-icon">
+            <text>✦</text>
           </view>
+          <text>3.获得积分</text>
         </view>
       </view>
     </view>
 
-    <!-- 输入邀请码 -->
-    <view v-if="!hasBoundInvite" class="bind-section">
-      <text class="section-title">输入邀请码</text>
-      <view class="bind-card">
-        <input
-          v-model="inputInviteCode"
-          class="invite-input"
-          placeholder="请输入好友的邀请码"
-          maxlength="6"
-        />
-        <button class="bind-btn" @click="handleBindInvite">
-          <text>绑定</text>
-        </button>
-      </view>
-      <text class="bind-tip">每个账号只能绑定一次邀请码</text>
+    <view class="actions">
+      <button @click="copyInviteCode">复制邀请码</button>
+      <button class="primary" @click="savePoster">保存海报</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { client } from '@/services/uniClient'
+import { computed, onMounted, ref } from 'vue'
+import AppNavBar from '@/components/AppNavBar.vue'
+import AppStatusBar from '@/components/AppStatusBar.vue'
+import { ASSETS } from '@/config/assets'
+import { useAuthStore } from '@/stores/authStore'
+import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
+import QrCodeGrid from '@/components/QrCodeGrid.vue'
 
-const inviteCode = ref('')
-const invitedCount = ref(0)
-const totalRewardPoints = ref(0)
-const ruleText = ref('每邀请1位新用户注册，双方各得 50 点算力')
-const hasBoundInvite = ref(false)
-const inputInviteCode = ref('')
+const authStore = useAuthStore()
+const inviteInfo = ref<InviteInfo | null>(null)
 
-const goBack = () => {
-  uni.navigateBack()
+const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
+const nickname = computed(() => authStore.userProfile?.nickname || '用户昵称111')
+const inviteCode = computed(() => inviteInfo.value?.invite_code || 'AURAKEY')
+const qrValue = computed(() => `aurakey://invite?code=${encodeURIComponent(inviteCode.value)}`)
+
+const goBack = () => uni.navigateBack()
+
+const loadInviteInfo = async () => {
+  try {
+    inviteInfo.value = await aurakeyApi.user.inviteInfo()
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '邀请信息加载失败', icon: 'none' })
+  }
 }
 
 const copyInviteCode = () => {
   uni.setClipboardData({
     data: inviteCode.value,
-    success: () => {
-      uni.showToast({ title: '邀请码已复制', icon: 'success' })
-    },
+    success: () => uni.showToast({ title: '已复制邀请码', icon: 'success' }),
   })
 }
 
-const handleBindInvite = async () => {
-  if (!inputInviteCode.value.trim()) {
-    uni.showToast({ title: '请输入邀请码', icon: 'none' })
-    return
-  }
-
-  if (inputInviteCode.value === inviteCode.value) {
-    uni.showToast({ title: '不能绑定自己的邀请码', icon: 'none' })
-    return
-  }
-
-  try {
-    const res = await client.POST('/aurakey/user/bind-invite', {
-      body: {
-        invite_code: inputInviteCode.value,
-      },
-    })
-
-    if (res.data?.code === 200 && res.data.data) {
-      const { is_success, reward_points } = res.data.data
-      if (is_success) {
-        uni.showToast({
-          title: `绑定成功！获得 ${reward_points} 算力`,
-          icon: 'success',
-        })
-        hasBoundInvite.value = true
-        inputInviteCode.value = ''
-      } else {
-        uni.showToast({ title: '绑定失败，请检查邀请码', icon: 'none' })
-      }
-    }
-  } catch (error: any) {
-    console.error('绑定邀请码失败:', error)
-    uni.showToast({ title: error.message || '绑定失败', icon: 'none' })
-  }
-}
-
-const loadInviteInfo = async () => {
-  try {
-    const res = await client.GET('/aurakey/user/invite-info')
-    if (res.data?.code === 200 && res.data.data) {
-      const { invite_code, invited_count, total_reward_points, rule_text } = res.data.data
-      inviteCode.value = invite_code
-      invitedCount.value = invited_count
-      totalRewardPoints.value = total_reward_points
-      if (rule_text) ruleText.value = rule_text
-    }
-  } catch (error) {
-    console.error('加载邀请信息失败:', error)
-    uni.showToast({ title: '加载失败', icon: 'none' })
-  }
+const savePoster = () => {
+  uni.showToast({ title: '海报保存能力待接入小程序画布', icon: 'none' })
 }
 
 onMounted(() => {
@@ -169,236 +104,177 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.invite-container {
-  width: 100%;
+.invite-page {
   min-height: 100vh;
-  background: #0A0A0A;
-  padding-bottom: 32rpx;
+  padding-bottom: 52rpx;
+  background: #202020;
+  color: #16122f;
 }
 
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 88rpx;
-  padding-top: env(safe-area-inset-top);
+.poster {
+  position: relative;
+  margin: 18rpx 24rpx 0;
+  min-height: 1298rpx;
+  border-radius: 44rpx;
+  overflow: hidden;
+  background: linear-gradient(155deg, #f2d7ff 0%, #fbf8ff 36%, #d9f6ff 100%);
+}
+
+.poster-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 0 88%, rgba(144, 98, 255, 0.24), transparent 24%),
+    radial-gradient(circle at 100% 58%, rgba(111, 160, 255, 0.2), transparent 28%);
+}
+
+.headline {
+  position: relative;
+  padding-top: 92rpx;
+  text-align: center;
+}
+
+.headline-row {
   display: flex;
-  justify-content: space-between;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.send {
+  color: #16122f;
+  font-size: 54rpx;
+  font-weight: 900;
+}
+
+.number {
+  color: #965fff;
+  font-size: 146rpx;
+  line-height: 0.86;
+  font-weight: 900;
+  font-style: italic;
+  text-shadow: 0 10rpx 24rpx rgba(113, 81, 255, 0.18);
+}
+
+.swirl {
+  width: 620rpx;
+  height: 36rpx;
+  margin: -10rpx auto 0;
+  border-bottom: 12rpx solid rgba(139, 97, 255, 0.65);
+  border-radius: 0 0 50% 50%;
+}
+
+.sub-title {
+  position: relative;
+  z-index: 1;
+  width: 520rpx;
+  margin: 34rpx auto 0;
+  color: #282044;
+  font-size: 40rpx;
+  line-height: 1.45;
+  text-align: center;
+  font-weight: 800;
+
+  text {
+    display: inline;
+  }
+
+  .brand {
+    color: #8c62ff;
+    font-style: italic;
+  }
+}
+
+.qr-card {
+  position: relative;
+  z-index: 1;
+  width: 554rpx;
+  min-height: 620rpx;
+  margin: 42rpx auto 0;
+  padding: 48rpx 0;
+  border-radius: 34rpx;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(20rpx);
-  z-index: 100;
-
-  .nav-btn {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 32rpx;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40rpx;
-    color: #fff;
-  }
-
-  .nav-title {
-    font-size: 32rpx;
-    color: #fff;
-    font-weight: 500;
-  }
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 22rpx 50rpx rgba(118, 87, 182, 0.12);
 }
 
-.invite-card {
-  margin-top: calc(88rpx + env(safe-area-inset-top) + 32rpx);
-  margin-left: 32rpx;
-  margin-right: 32rpx;
-  padding: 48rpx 32rpx;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(181, 55, 255, 0.1) 100%);
-  backdrop-filter: blur(20rpx);
-  border-radius: 24rpx;
-
-  .card-title {
-    display: block;
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #fff;
-    text-align: center;
-    margin-bottom: 16rpx;
-  }
-
-  .card-desc {
-    display: block;
-    font-size: 24rpx;
-    color: rgba(255, 255, 255, 0.6);
-    text-align: center;
-    margin-bottom: 32rpx;
-  }
-
-  .invite-code-section {
-    margin-bottom: 32rpx;
-
-    .code-label {
-      display: block;
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.6);
-      text-align: center;
-      margin-bottom: 16rpx;
-    }
-
-    .code-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 24rpx;
-
-      .code {
-        font-size: 56rpx;
-        font-weight: bold;
-        color: #fff;
-        letter-spacing: 8rpx;
-        font-family: 'Courier New', monospace;
-      }
-
-      .copy-btn {
-        padding: 12rpx 24rpx;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 24rpx;
-        font-size: 24rpx;
-        color: #00D4FF;
-      }
-    }
-  }
-
-  .stats-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding-top: 32rpx;
-    border-top: 1rpx solid rgba(255, 255, 255, 0.1);
-
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8rpx;
-
-      .stat-value {
-        font-size: 48rpx;
-        font-weight: bold;
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-
-      .stat-label {
-        font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.6);
-      }
-    }
-
-    .stat-divider {
-      width: 1rpx;
-      height: 80rpx;
-      background: rgba(255, 255, 255, 0.1);
-    }
-  }
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  color: #8a8a91;
+  font-size: 28rpx;
 }
 
-.steps-section,
-.bind-section {
-  margin-top: 48rpx;
-  padding: 0 32rpx;
+.avatar {
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 50%;
+}
 
-  .section-title {
-    display: block;
-    font-size: 32rpx;
-    font-weight: bold;
+.invite-text {
+  margin: 22rpx 0 28rpx;
+  color: #b0aeb7;
+  font-size: 26rpx;
+}
+
+.steps {
+  position: relative;
+  z-index: 1;
+  margin: 42rpx 56rpx 0;
+  display: grid;
+  grid-template-columns: 1fr 50rpx 1fr 50rpx 1fr;
+  align-items: start;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  color: #25243b;
+  font-size: 24rpx;
+}
+
+.step-icon {
+  width: 86rpx;
+  height: 86rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9368ff;
+  font-size: 42rpx;
+  background: rgba(255, 255, 255, 0.58);
+  border: 3rpx solid rgba(255, 255, 255, 0.84);
+  box-shadow: inset 0 0 22rpx rgba(146, 102, 255, 0.18);
+}
+
+.dots {
+  padding-top: 34rpx;
+  color: #9368ff;
+  font-size: 38rpx;
+  letter-spacing: 3rpx;
+}
+
+.actions {
+  margin: 24rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+
+  button {
+    height: 82rpx;
+    border-radius: 18rpx;
     color: #fff;
-    margin-bottom: 24rpx;
+    font-size: 28rpx;
+    background: rgba(255, 255, 255, 0.12);
   }
 
-  .steps-list {
-    display: flex;
-    flex-direction: column;
-    gap: 24rpx;
-
-    .step-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 24rpx;
-
-      .step-number {
-        width: 64rpx;
-        height: 64rpx;
-        border-radius: 32rpx;
-        background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #fff;
-        flex-shrink: 0;
-      }
-
-      .step-content {
-        flex: 1;
-        padding-top: 8rpx;
-
-        .step-title {
-          display: block;
-          font-size: 28rpx;
-          color: #fff;
-          font-weight: 500;
-          margin-bottom: 8rpx;
-        }
-
-        .step-desc {
-          display: block;
-          font-size: 24rpx;
-          color: rgba(255, 255, 255, 0.6);
-        }
-      }
-    }
-  }
-
-  .bind-card {
-    display: flex;
-    gap: 16rpx;
-    margin-bottom: 16rpx;
-
-    .invite-input {
-      flex: 1;
-      height: 88rpx;
-      padding: 0 24rpx;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 16rpx;
-      font-size: 32rpx;
-      color: #fff;
-      text-align: center;
-      letter-spacing: 4rpx;
-    }
-
-    .bind-btn {
-      width: 160rpx;
-      height: 88rpx;
-      background: linear-gradient(135deg, #00D4FF 0%, #B537FF 100%);
-      border-radius: 16rpx;
-      border: none;
-      font-size: 28rpx;
-      color: #fff;
-      font-weight: 500;
-    }
-  }
-
-  .bind-tip {
-    display: block;
-    font-size: 24rpx;
-    color: rgba(255, 255, 255, 0.4);
-    text-align: center;
+  .primary {
+    background: linear-gradient(180deg, #5a64ff, #3e98ff);
   }
 }
 </style>
