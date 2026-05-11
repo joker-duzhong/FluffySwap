@@ -63,7 +63,7 @@ const chooseAvatar = () => {
 }
 
 const uploadAvatarIfNeeded = async () => {
-  if (!formAvatar.value || formAvatar.value === props.avatar || /^https?:\/\//.test(formAvatar.value)) {
+  if (!formAvatar.value || formAvatar.value === props.avatar) {
     return formAvatar.value
   }
 

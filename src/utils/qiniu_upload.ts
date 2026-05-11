@@ -21,8 +21,8 @@ interface QiniuUploadResult {
   hash: string
 }
 
-const DEFAULT_APP_KEY = 'aurakey'
-const DEFAULT_UPLOAD_HOST = 'https://upload.qiniup.com'
+const DEFAULT_APP_KEY = 'hope_aurakey'
+const DEFAULT_UPLOAD_HOST = 'https://up-z2.qiniup.com'
 const DEFAULT_MIME_TYPE = 'image/png'
 
 const trimSlash = (value: string) => value.replace(/^\/+|\/+$/g, '')
