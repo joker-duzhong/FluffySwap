@@ -159,6 +159,11 @@ export interface ProductItem {
   tag?: string | null
 }
 
+export interface ProductsResponse {
+  items: ProductItem[]
+  openid?: string | null
+}
+
 export interface OrderCreateResponse {
   order_no: string
   pay_params: Record<string, any>
@@ -337,15 +342,15 @@ export const aurakeyApi = {
   store: {
     products: async () => {
       const res = await client.GET('/aurakey/products')
-      const data = ensureOk<ProductItem[] | { items: ProductItem[] }>(res.data, '加载商品失败')
-      return Array.isArray(data) ? data : data.items || []
+      const data = ensureOk<ProductItem[] | ProductsResponse>(res.data, '加载商品失败')
+      return Array.isArray(data) ? { items: data, openid: null } : { items: data.items || [], openid: data.openid || null }
     },
   },
 
   order: {
-    create: async (productId: string) => {
+    create: async (productId: string, openid: string) => {
       const res = await client.POST('/aurakey/order/create', {
-        body: { product_id: productId },
+        body: { product_id: productId, openid },
       })
       return ensureOk<OrderCreateResponse>(res.data, '创建订单失败')
     },

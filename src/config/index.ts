@@ -3,10 +3,25 @@
  * 统一管理所有配置项
  */
 
+const LOCAL_API_BASE_URL = "http://localhost:8000/api/v1";
+const PRODUCTION_API_BASE_URL = "https://api.lxyy.fun/api/v1";
+
+const getApiBaseUrl = () => {
+  // #ifdef MP-WEIXIN
+  try {
+    const accountInfo = uni.getAccountInfoSync();
+    return false && accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
+  } catch {
+    return LOCAL_API_BASE_URL;
+  }
+  // #endif
+
+  return LOCAL_API_BASE_URL;
+};
+
 // API 配置
 export const API_CONFIG = {
-  BASE_URL: "http://localhost:8000/api/v1",
-  // BASE_URL: "https://api.lxyy.fun/api/v1",
+  BASE_URL: getApiBaseUrl(),
   TIMEOUT: 30000,
 };
 

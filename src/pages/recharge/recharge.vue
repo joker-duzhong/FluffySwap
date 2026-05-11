@@ -11,13 +11,8 @@
 
     <PageSkeleton v-if="loading" class="plans-skeleton" variant="grid" :rows="3" />
     <view v-else class="plans">
-      <view
-        v-for="product in vipProducts"
-        :key="product.id"
-        class="plan-card"
-        :class="{ active: selectedProduct?.id === product.id }"
-        @click="selectedProduct = product"
-      >
+      <view v-for="product in vipProducts" :key="product.id" class="plan-card"
+        :class="{ active: selectedProduct?.id === product.id }" @click="selectedProduct = product">
         <view v-if="product.tag" class="recommend">{{ product.tag }}</view>
         <view class="points-bar">
           <image :src="ASSETS.iconSpark" mode="aspectFit" />
@@ -54,6 +49,7 @@ import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 const authStore = useAuthStore()
 const products = ref<ProductItem[]>([])
 const selectedProduct = ref<ProductItem | null>(null)
+const paymentOpenid = ref('')
 const showLoginSheet = ref(false)
 const loading = ref(false)
 const paying = ref(false)
@@ -79,7 +75,9 @@ const getPlanPoints = (name: string) => {
 const loadProducts = async () => {
   loading.value = true
   try {
-    products.value = await aurakeyApi.store.products()
+    const productData = await aurakeyApi.store.products();
+    products.value = productData.items
+    paymentOpenid.value = authStore.userProfile?.openid || ''
     selectedProduct.value = vipProducts.value[0] || null
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载失败', icon: 'none' })
@@ -88,30 +86,49 @@ const loadProducts = async () => {
   }
 }
 
+const requestPayment = (payParams: Record<string, any>) =>
+  new Promise<void>((resolve, reject) => {
+    uni.requestPayment({
+      ...payParams,
+      success: () => resolve(),
+      fail: reject,
+    } as unknown as UniApp.RequestPaymentOptions)
+  })
+
+const isPaidStatus = (status: string) => ['paid', 'success', 'finished', 'completed'].includes(status.toLowerCase())
+
+const confirmOrderPaid = async (orderNo: string) => {
+  for (let index = 0; index < 3; index += 1) {
+    const orderStatus = await aurakeyApi.order.status(orderNo)
+    if (isPaidStatus(orderStatus.status)) return
+    if (index < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+}
+
 const handlePay = async () => {
   if (!selectedProduct.value) return
-  const openid = authStore.userProfile?.openid
-  if (!openid) {
+  if (!authStore.isLoggedIn) {
     uni.showToast({ title: '请先登录', icon: 'none' })
     showLoginSheet.value = true
+    return
+  }
+  if (!paymentOpenid.value) {
+    uni.showToast({ title: '获取支付信息失败，请稍后重试', icon: 'none' })
     return
   }
 
   paying.value = true
   try {
-    const order = await aurakeyApi.order.create(selectedProduct.value.id, openid)
-    const paymentOptions = {
-      ...order.pay_params,
-      success: () => {
-        uni.showToast({ title: '支付成功', icon: 'success' })
-      },
-      fail: () => {
-        uni.showToast({ title: '支付未完成', icon: 'none' })
-      },
-    } as unknown as UniApp.RequestPaymentOptions
-    uni.requestPayment(paymentOptions)
+    const order = await aurakeyApi.order.create(selectedProduct.value.id, paymentOpenid.value)
+    await requestPayment(order.pay_params)
+    await confirmOrderPaid(order.order_no)
+    const profile = await aurakeyApi.user.profile()
+    authStore.setUserProfile(profile)
+    uni.showToast({ title: '支付成功', icon: 'success' })
   } catch (error: any) {
-    uni.showToast({ title: error.message || '支付失败', icon: 'none' })
+    uni.showToast({ title: error?.errMsg?.includes('cancel') ? '支付未完成' : error.message || '支付失败', icon: 'none' })
   } finally {
     paying.value = false
   }
