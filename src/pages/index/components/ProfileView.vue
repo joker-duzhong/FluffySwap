@@ -21,7 +21,7 @@
         <text class="nickname">{{ nickname }}</text>
         <text class="phone">{{ phoneText }}</text>
       </view>
-      <view v-else class="login-entry" @click="showLoginSheet = true">
+      <view v-else class="login-entry" @click="openLoginSheet">
         <image class="login-logo" :src="ASSETS.logoSymbol" mode="aspectFit" />
         <text>立即登录</text>
       </view>
@@ -29,10 +29,10 @@
 
     <view class="vip-card" @click="goRecharge">
       <view>
-        <text class="vip-title">会员中心·VIP</text>
-        <text class="vip-desc">每月超多灵感值，限时优惠</text>
+        <text class="vip-title">{{ vipTitle }}</text>
+        <text class="vip-desc">{{ vipDesc }}</text>
       </view>
-      <view class="vip-action">立即开通</view>
+      <view class="vip-action">{{ vipActionText }}</view>
     </view>
 
     <view class="works-section">
@@ -77,7 +77,7 @@
         </view>
         <view class="menu-right">
           <text>邀请好友双方各得</text>
-          <text class="highlight">10积分</text>
+          <text class="highlight">{{ inviteRewardPoints }}积分</text>
           <text class="arrow">›</text>
         </view>
       </view>
@@ -109,17 +109,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import ProfileEditSheet from '@/components/ProfileEditSheet.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
+import { useAppStore } from '@/stores/appStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
 import LoginSheet from './LoginSheet.vue'
 
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const historyStore = useHistoryStore()
 const showLoginSheet = ref(false)
 const showEditSheet = ref(false)
@@ -131,12 +133,28 @@ const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAva
 const nickname = computed(() => authStore.userProfile?.nickname || 'UserName_111')
 const phoneText = computed(() => authStore.userProfile?.phone || '13143214321')
 const works = computed(() => historyStore.items)
+const inviteRewardPoints = computed(() => appStore.inviteRewardPoints)
+const vipTitle = computed(() => authStore.isVip ? authStore.membershipType : '会员中心·VIP')
+const vipDesc = computed(() => {
+  if (!authStore.isVip) return '每月超多灵感值，限时优惠'
+  if (!authStore.vipExpireTime) return '会员权益生效中'
+  return `有效期至 ${formatExpireDate(authStore.vipExpireTime)}`
+})
+const vipActionText = computed(() => authStore.isVip ? '续费' : '立即开通')
 
 const goRecharge = () => uni.navigateTo({ url: '/pages/recharge/recharge' })
 const goHistory = () => uni.navigateTo({ url: '/pages/history/history' })
 const goAssetLogs = () => uni.navigateTo({ url: '/pages/asset-logs/asset-logs' })
 const goInvite = () => uni.navigateTo({ url: '/pages/invite/invite' })
 const openWork = (taskId: string) => uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${taskId}` })
+
+const formatExpireDate = (timestamp: number) => {
+  const milliseconds = timestamp > 100000000000 ? timestamp : timestamp * 1000
+  const date = new Date(milliseconds)
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${date.getFullYear()}.${month}.${day}`
+}
 
 const statusText = (status: string) => {
   const map: Record<string, string> = {
@@ -154,6 +172,11 @@ const progressText = (item: TaskHistoryItem) => {
 
 const showAgreement = (type: 'user' | 'privacy') => {
   uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
+}
+
+const openLoginSheet = () => {
+  if (authStore.profileLoading) return
+  showLoginSheet.value = true
 }
 
 const logout = () => {
@@ -182,8 +205,9 @@ const handleLoginRequired = () => {
 }
 
 const loadData = async () => {
-  if (!authStore.isLoggedIn) return
+  if (appStore.appInitializing || !authStore.isLoggedIn || authStore.profileLoading || worksLoading.value) return
   worksLoading.value = historyStore.items.length === 0
+  authStore.setProfileLoading(true)
   try {
     const [profile] = await Promise.all([
       aurakeyApi.user.profile(),
@@ -193,6 +217,7 @@ const loadData = async () => {
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载我的页面失败', icon: 'none' })
   } finally {
+    authStore.setProfileLoading(false)
     worksLoading.value = false
   }
 }
@@ -201,6 +226,15 @@ onMounted(() => {
   uni.$on('auth:login-required', handleLoginRequired)
   loadData()
 })
+
+watch(
+  () => [appStore.currentTab, appStore.appInitializing, authStore.isLoggedIn],
+  () => {
+    if (appStore.currentTab === 'profile' && !appStore.appInitializing) {
+      loadData()
+    }
+  },
+)
 
 onUnmounted(() => {
   uni.$off('auth:login-required', handleLoginRequired)

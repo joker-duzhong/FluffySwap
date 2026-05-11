@@ -1,4 +1,5 @@
 import { client } from './uniClient'
+import type { AurakeySystemConfig } from '@/config'
 
 export interface ApiEnvelope<T> {
   code?: number
@@ -157,6 +158,9 @@ export interface ProductItem {
   point_amount: number
   bonus_amount: number
   tag?: string | null
+  vip_type?: string | null
+  vip_level?: number
+  valid_days?: number | null
 }
 
 export interface ProductsResponse {
@@ -187,6 +191,38 @@ export interface SignInResponse {
   reward_points: number
   continuous_days?: number
 }
+
+export interface UserEntitlement {
+  vip_expire_time?: number | null
+  remaining_points: number
+  is_vip: boolean
+  vip_type?: string
+  vip_level?: number
+}
+
+export interface PurchaseOrderItem {
+  order_no: string
+  status: string
+  amount: number
+  pay_method: string
+  product_id: string
+  product_name: string
+  product_type: string
+  point_amount?: number
+  bonus_amount?: number
+  granted_points?: number
+  remaining_points?: number
+  vip_type?: string | null
+  vip_level?: number
+  valid_days?: number | null
+  entitlement_start_at?: number | null
+  entitlement_expire_at?: number | null
+  created_at: number
+  paid_at?: number | null
+  is_effective?: boolean
+}
+
+export type AurakeySystemConfigUpdate = Partial<AurakeySystemConfig>
 
 const ensureOk = <T>(payload: unknown, fallbackMessage: string): T => {
   const envelope = payload as ApiEnvelope<T>
@@ -227,6 +263,13 @@ const normalizeCategories = (payload: unknown): GalleryCategory[] => {
 }
 
 export const aurakeyApi = {
+  system: {
+    config: async () => {
+      const res = await client.GET('/aurakey/system/config')
+      return ensureOk<AurakeySystemConfig>(res.data, '加载系统配置失败')
+    },
+  },
+
   auth: {
     miniappLogin: async (appid: string, code: string) => {
       const res = await client.POST('/auth/miniapp/login', { body: { appid, code } })
@@ -305,6 +348,10 @@ export const aurakeyApi = {
       const res = await client.GET('/aurakey/user/profile')
       return ensureOk<UserProfile>(res.data, '加载用户失败')
     },
+    entitlement: async () => {
+      const res = await client.GET('/aurakey/user/entitlement')
+      return ensureOk<UserEntitlement>(res.data, '加载权益失败')
+    },
     history: async (page: number, pageSize: number) => {
       const res = await client.GET('/aurakey/user/history', {
         params: { query: { page, pageSize } },
@@ -360,6 +407,12 @@ export const aurakeyApi = {
       })
       return ensureOk<OrderStatusResponse>(res.data, '查询订单失败')
     },
+    list: async (page: number, pageSize: number) => {
+      const res = await client.GET('/aurakey/orders', {
+        params: { query: { page, pageSize } },
+      })
+      return normalizeList<PurchaseOrderItem>(res.data)
+    },
   },
 
   asset: {
@@ -376,12 +429,25 @@ export const aurakeyApi = {
       const res = await client.GET('/storage/upload-token')
       return ensureOk<UploadTokenResponse>(res.data, '获取上传凭证失败')
     },
-    confirmUpload: async (payload: ConfirmUploadPayload) => {
+    confirmUpload: async (payload: ConfirmUploadPayload, appKey = 'aurakey') => {
       const res = await client.POST('/storage/confirm-upload', {
         body: payload,
-        headers: { app: 'aurakey' },
+        headers: { app: appKey },
       })
       return ensureOk<ResourceResponse>(res.data, '确认上传失败')
+    },
+  },
+
+  admin: {
+    systemConfig: {
+      get: async () => {
+        const res = await client.GET('/aurakey/admin/system/config')
+        return ensureOk<AurakeySystemConfig>(res.data, '加载系统配置失败')
+      },
+      update: async (payload: AurakeySystemConfigUpdate) => {
+        const res = await client.PUT('/aurakey/admin/system/config', { body: payload })
+        return ensureOk<AurakeySystemConfig>(res.data, '保存系统配置失败')
+      },
     },
   },
 }

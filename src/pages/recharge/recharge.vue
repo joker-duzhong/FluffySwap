@@ -5,21 +5,34 @@
 
     <view class="hero-content">
       <text class="title">会员中心·VIP</text>
-      <text class="tag">限时7折</text>
-      <text class="desc">早期限时活动专享7折优惠，补充灵感值，让高清度排版引擎持续为你工作。</text>
+      <text v-if="rechargeTag" class="tag">{{ rechargeTag }}</text>
+      <text v-if="rechargeSubtitle" class="desc">{{ rechargeSubtitle }}</text>
+    </view>
+
+    <view v-if="productTabs.length > 1" class="product-tabs">
+      <view
+        v-for="tab in productTabs"
+        :key="tab.type"
+        class="product-tab"
+        :class="{ active: selectedProductType === tab.type }"
+        @click="selectProductType(tab.type)"
+      >
+        <text>{{ tab.label }}</text>
+      </view>
     </view>
 
     <PageSkeleton v-if="loading" class="plans-skeleton" variant="grid" :rows="3" />
     <view v-else class="plans">
-      <view v-for="product in vipProducts" :key="product.id" class="plan-card"
+      <view v-for="product in currentProducts" :key="product.id" class="plan-card"
         :class="{ active: selectedProduct?.id === product.id }" @click="selectedProduct = product">
         <view v-if="product.tag" class="recommend">{{ product.tag }}</view>
         <view class="points-bar">
           <image :src="ASSETS.iconSpark" mode="aspectFit" />
-          <text>{{ product.point_amount || getPlanPoints(product.name) }}/月</text>
+          <text>{{ formatProductBenefit(product) }}</text>
         </view>
         <view class="plan-body">
           <text class="name">{{ product.name }}</text>
+          <text v-if="formatValidDays(product)" class="valid-days">{{ formatValidDays(product) }}</text>
           <view class="price-row">
             <text class="yen">¥</text>
             <text class="price">{{ formatYuan(product.price) }}</text>
@@ -30,9 +43,9 @@
     </view>
 
     <button class="open-btn" :disabled="!selectedProduct || paying" :loading="paying" @click="handlePay">
-      {{ paying ? '处理中' : '开通会员' }}
+      {{ paying ? '处理中' : payButtonText }}
     </button>
-    <text class="agreement">开通会员代表接受《会员协议》</text>
+    <text class="agreement">购买代表接受《会员协议》</text>
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
@@ -43,21 +56,34 @@ import AppTopNav from '@/components/AppTopNav.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
+import { useAppStore } from '@/stores/appStore'
 import { aurakeyApi, type ProductItem } from '@/services/aurakey'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const products = ref<ProductItem[]>([])
 const selectedProduct = ref<ProductItem | null>(null)
+const selectedProductType = ref('vip')
 const paymentOpenid = ref('')
 const showLoginSheet = ref(false)
 const loading = ref(false)
 const paying = ref(false)
 
-const vipProducts = computed(() => {
-  const list = products.value.filter((item) => item.type === 'vip')
+const productTabs = computed(() => {
+  const tabs: Array<{ type: string; label: string }> = []
+  if (products.value.some((item) => item.type === 'vip')) tabs.push({ type: 'vip', label: '会员' })
+  if (products.value.some((item) => item.type === 'point_pack')) tabs.push({ type: 'point_pack', label: '灵感包' })
+  return tabs.length > 0 ? tabs : [{ type: 'all', label: '商品' }]
+})
+const currentProducts = computed(() => {
+  if (selectedProductType.value === 'all') return products.value
+  const list = products.value.filter((item) => item.type === selectedProductType.value)
   return list.length > 0 ? list : products.value
 })
+const rechargeTag = computed(() => appStore.rechargeTag)
+const rechargeSubtitle = computed(() => appStore.rechargeSubtitle)
+const payButtonText = computed(() => selectedProduct.value?.type === 'point_pack' ? '立即购买' : '开通会员')
 
 const goBack = () => uni.navigateBack()
 
@@ -66,19 +92,41 @@ const formatYuan = (fen: number) => {
   return Number.isInteger(yuan) ? yuan.toFixed(0) : yuan.toFixed(1)
 }
 
-const getPlanPoints = (name: string) => {
-  if (name.includes('高级')) return 800
-  if (name.includes('专业')) return 260
-  return 100
+const getProductPoints = (product: ProductItem) => Number(product.point_amount || 0) + Number(product.bonus_amount || 0)
+
+const formatProductBenefit = (product: ProductItem) => {
+  const points = getProductPoints(product)
+  if (product.type === 'vip') {
+    const levelText = product.vip_level ? `Lv.${product.vip_level}` : ''
+    const typeText = product.vip_type || 'VIP'
+    return `${typeText}${levelText ? ` ${levelText}` : ''} · ${points}灵感值`
+  }
+  return `${points}灵感值`
+}
+
+const formatValidDays = (product: ProductItem) => {
+  const days = product.valid_days ?? (
+    product.type === 'vip'
+      ? appStore.systemConfig.default_vip_valid_days
+      : appStore.systemConfig.default_point_pack_valid_days
+  )
+  if (!days) return product.type === 'point_pack' ? '长期有效' : ''
+  return `${days}天有效`
+}
+
+const selectProductType = (type: string) => {
+  selectedProductType.value = type
+  selectedProduct.value = currentProducts.value[0] || null
 }
 
 const loadProducts = async () => {
   loading.value = true
   try {
-    const productData = await aurakeyApi.store.products();
+    const productData = await aurakeyApi.store.products()
     products.value = productData.items
     paymentOpenid.value = authStore.userProfile?.openid || ''
-    selectedProduct.value = vipProducts.value[0] || null
+    selectedProductType.value = productTabs.value[0]?.type || 'all'
+    selectedProduct.value = currentProducts.value[0] || null
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载失败', icon: 'none' })
   } finally {
@@ -124,12 +172,14 @@ const handlePay = async () => {
     const order = await aurakeyApi.order.create(selectedProduct.value.id, paymentOpenid.value)
     await requestPayment(order.pay_params)
     await confirmOrderPaid(order.order_no)
+    authStore.setProfileLoading(true)
     const profile = await aurakeyApi.user.profile()
     authStore.setUserProfile(profile)
     uni.showToast({ title: '支付成功', icon: 'success' })
   } catch (error: any) {
     uni.showToast({ title: error?.errMsg?.includes('cancel') ? '支付未完成' : error.message || '支付失败', icon: 'none' })
   } finally {
+    authStore.setProfileLoading(false)
     paying.value = false
   }
 }
@@ -200,6 +250,35 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.64);
   font-size: 26rpx;
   line-height: 40rpx;
+}
+
+.product-tabs {
+  position: relative;
+  z-index: 1;
+  width: 320rpx;
+  height: 64rpx;
+  margin: 38rpx auto 0;
+  padding: 6rpx;
+  border-radius: 16rpx;
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.product-tab {
+  flex: 1;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 24rpx;
+  line-height: 34rpx;
+
+  &.active {
+    color: #160b23;
+    font-weight: 700;
+    background: #e8d8ff;
+  }
 }
 
 .plans {
@@ -289,6 +368,13 @@ onUnmounted(() => {
     width: 22rpx;
     height: 22rpx;
   }
+
+  text {
+    max-width: 190rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .plan-body {
@@ -307,8 +393,15 @@ onUnmounted(() => {
   line-height: 34rpx;
 }
 
+.valid-days {
+  margin-top: 6rpx;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 20rpx;
+  line-height: 28rpx;
+}
+
 .price-row {
-  margin-top: 16rpx;
+  margin-top: 10rpx;
   display: flex;
   align-items: baseline;
   color: #fff;

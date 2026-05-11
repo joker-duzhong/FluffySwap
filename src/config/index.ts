@@ -10,7 +10,7 @@ const getApiBaseUrl = () => {
   // #ifdef MP-WEIXIN
   try {
     const accountInfo = uni.getAccountInfoSync();
-    return false && accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
+    return accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
   } catch {
     return LOCAL_API_BASE_URL;
   }
@@ -35,6 +35,36 @@ export const STORAGE_KEYS = {
   TOKEN: "aurakey_token",
   USER_INFO: "aurakey_user_info",
   LAST_PROMPT: "aurakey_last_prompt",
+};
+
+export interface AurakeySystemCustomConfig extends Record<string, unknown> {
+  miniapp_check_version?: string;
+  recharge_tag?: string;
+  recharge_subtitle?: string;
+}
+
+export interface AurakeySystemConfig {
+  register_reward_points: number;
+  daily_sign_in_reward_points: number;
+  invite_reward_points: number;
+  default_vip_valid_days: number;
+  default_point_pack_valid_days: number | null;
+  daily_free_points_reset_hour: number;
+  custom: AurakeySystemCustomConfig;
+}
+
+export const DEFAULT_AURAKEY_SYSTEM_CONFIG: AurakeySystemConfig = {
+  register_reward_points: 10,
+  daily_sign_in_reward_points: 10,
+  invite_reward_points: 50,
+  default_vip_valid_days: 30,
+  default_point_pack_valid_days: null,
+  daily_free_points_reset_hour: 24,
+  custom: {
+    miniapp_check_version: "1.0.1",
+    recharge_tag: "限时7折",
+    recharge_subtitle: "早期限时活动专享7折优惠，补充灵感值，让高清度排版引擎持续为你工作。",
+  },
 };
 
 // UI 主题配置

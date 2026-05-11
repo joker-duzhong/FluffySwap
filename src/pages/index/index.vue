@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="{ locked: appLocked }">
     <TemplateView v-show="currentTab === 'template'" @create="openCreateSheet()" />
     <ProfileView v-show="currentTab === 'profile'" />
 
@@ -23,6 +23,10 @@
       @submitted="handleTaskSubmitted"
     />
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
+    <view v-if="appLocked" class="startup-mask">
+      <image :src="ASSETS.logoSymbol" mode="aspectFit" />
+      <text>正在加载</text>
+    </view>
   </view>
 </template>
 
@@ -47,6 +51,7 @@ const showCreateSheet = ref(false)
 const showLoginSheet = ref(false)
 
 const currentTab = computed(() => appStore.currentTab)
+const appLocked = computed(() => appStore.appInitializing || (!authStore.isLoggedIn && authStore.profileLoading))
 
 const SHARE_CONFIG = {
   title: 'AuraKey AI 魔法师',
@@ -70,14 +75,17 @@ const tabItems: Array<{ name: TabName; label: string; icon: string; activeIcon: 
 ]
 
 const switchTab = (tab: TabName) => {
+  if (appLocked.value) return
   appStore.setTab(tab)
 }
 
 const openCreateSheet = () => {
+  if (appLocked.value) return
   showCreateSheet.value = true
 }
 
 const handleLoginRequired = () => {
+  if (appLocked.value) return
   showLoginSheet.value = true
 }
 
@@ -118,6 +126,30 @@ onShareTimeline(() => ({
   height: 100vh;
   overflow: hidden;
   background: #050506;
+
+  &.locked {
+    pointer-events: none;
+  }
+}
+
+.startup-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 26rpx;
+  background: #050506;
+  pointer-events: auto;
+
+  image {
+    width: 110rpx;
+    height: 110rpx;
+  }
 }
 
 .custom-tabbar {

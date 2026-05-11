@@ -23,9 +23,11 @@ const normalizeProfile = (profile: Partial<UserProfile> & { id?: string }) => ({
   nickname: profile.nickname || 'UserName_111',
   avatar: profile.avatar || ASSETS.defaultAvatar,
   phone: profile.phone || null,
+  openid: profile.openid || null,
   balance: Number(profile.balance || 0),
   is_vip: Boolean(profile.is_vip),
   type: profile.type || '普通会员',
+  vip_expire_time: typeof profile.vip_expire_time === 'number' ? profile.vip_expire_time : null,
 }) as UserProfile
 
 export const useAuthStore = defineStore('auth', {
@@ -33,13 +35,19 @@ export const useAuthStore = defineStore('auth', {
     token: '',
     userProfile: null as UserProfile | null,
     isLoggedIn: false,
+    profileLoading: false,
   }),
   getters: {
     hasPhone: (state) => !!state.userProfile?.phone,
     isVip: (state) => state.userProfile?.is_vip || false,
     balance: (state) => state.userProfile?.balance || 0,
+    membershipType: (state) => state.userProfile?.type || '普通会员',
+    vipExpireTime: (state) => state.userProfile?.vip_expire_time || null,
   },
   actions: {
+    setProfileLoading(loading: boolean) {
+      this.profileLoading = loading
+    },
     setToken(token: string) {
       this.token = token
       uni.setStorageSync(STORAGE_KEYS.TOKEN, token)
@@ -54,6 +62,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = ''
       this.userProfile = null
       this.isLoggedIn = false
+      this.profileLoading = false
       uni.removeStorageSync(STORAGE_KEYS.TOKEN)
       uni.removeStorageSync(STORAGE_KEYS.USER_INFO)
     },

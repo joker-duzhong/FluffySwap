@@ -141,6 +141,10 @@ const showRatioPicker = () => {
 }
 
 const handleSubmit = async () => {
+  if (authStore.profileLoading) {
+    uni.showToast({ title: '登录状态加载中', icon: 'none' })
+    return
+  }
   if (!prompt.value.trim()) {
     uni.showToast({ title: '请输入提示词', icon: 'none' })
     return

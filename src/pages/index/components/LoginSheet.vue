@@ -9,14 +9,14 @@
         v-if="authStore.token"
         class="login-btn"
         open-type="getPhoneNumber"
-        :disabled="loading"
-        :loading="loading"
+        :disabled="loading || authStore.profileLoading"
+        :loading="loading || authStore.profileLoading"
         @getphonenumber="handlePhoneNumber"
       >
-        {{ loading ? '绑定中' : '绑定手机号' }}
+        {{ loading || authStore.profileLoading ? '绑定中' : '绑定手机号' }}
       </button>
-      <button v-else class="login-btn" :disabled="loading" :loading="loading" @click="handleLogin">
-        {{ loading ? '登录中' : '微信登录' }}
+      <button v-else class="login-btn" :disabled="loading || authStore.profileLoading" :loading="loading || authStore.profileLoading" @click="handleLogin">
+        {{ loading || authStore.profileLoading ? '登录中' : '微信登录' }}
       </button>
       <view class="agreement" @click="agreed = !agreed">
         <view class="radio" :class="{ active: agreed }"></view>
@@ -45,17 +45,23 @@ const authStore = useAuthStore()
 const agreed = ref(false)
 const loading = ref(false)
 
+const setLoading = (value: boolean) => {
+  loading.value = value
+  authStore.setProfileLoading(value)
+}
+
 const showAgreement = (type: 'user' | 'privacy') => {
   uni.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
 }
 
 const handleLogin = () => {
+  if (loading.value || authStore.profileLoading) return
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
   }
 
-  loading.value = true
+  setLoading(true)
   uni.login({
     provider: 'weixin',
     success: async (loginRes) => {
@@ -73,17 +79,18 @@ const handleLogin = () => {
       } catch (error: any) {
         uni.showToast({ title: error.message || '登录失败', icon: 'none' })
       } finally {
-        loading.value = false
+        setLoading(false)
       }
     },
     fail: () => {
-      loading.value = false
+      setLoading(false)
       uni.showToast({ title: '登录失败', icon: 'none' })
     },
   })
 }
 
 const handlePhoneNumber = async (event: any) => {
+  if (loading.value || authStore.profileLoading) return
   if (!agreed.value) {
     uni.showToast({ title: '请先同意协议', icon: 'none' })
     return
@@ -94,7 +101,7 @@ const handlePhoneNumber = async (event: any) => {
     return
   }
 
-  loading.value = true
+  setLoading(true)
   try {
     const boundProfile = await aurakeyApi.auth.bindMiniappPhone(WECHAT_CONFIG.APPID, code)
     authStore.setUserProfile(boundProfile)
@@ -109,7 +116,7 @@ const handlePhoneNumber = async (event: any) => {
   } catch (error: any) {
     uni.showToast({ title: error.message || '绑定手机号失败', icon: 'none' })
   } finally {
-    loading.value = false
+    setLoading(false)
   }
 }
 </script>

@@ -28,6 +28,7 @@ import { ref, watch } from 'vue'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi } from '@/services/aurakey'
 import { useAuthStore } from '@/stores/authStore'
+import { uploadAvatar } from '@/utils/qiniu_upload'
 
 const props = defineProps<{
   nickname: string
@@ -66,44 +67,8 @@ const uploadAvatarIfNeeded = async () => {
     return formAvatar.value
   }
 
-  const tokenInfo = await aurakeyApi.storage.uploadToken()
-  const fileName = `avatar/${Date.now()}-${Math.random().toString(36).slice(2)}.png`
-  const uploadResult = await new Promise<{ key: string; hash: string }>((resolve, reject) => {
-    uni.uploadFile({
-      url: 'https://upload.qiniup.com',
-      filePath: formAvatar.value,
-      name: 'file',
-      formData: {
-        token: tokenInfo.token,
-        key: fileName,
-      },
-      success: (res) => {
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          reject(new Error('头像上传失败'))
-          return
-        }
-        try {
-          const data = JSON.parse(res.data || '{}')
-          resolve({
-            key: data.key || fileName,
-            hash: data.hash || fileName,
-          })
-        } catch (error) {
-          reject(error)
-        }
-      },
-      fail: reject,
-    })
-  })
-
-  const resource = await aurakeyApi.storage.confirmUpload({
-    name: uploadResult.key,
-    url: uploadResult.key,
-    size: 0,
-    type: 'image/png',
-    hash: uploadResult.hash,
-  })
-  return resource.url || `${tokenInfo.domain.replace(/\/$/, '')}/${fileName}`
+  const uploaded = await uploadAvatar(formAvatar.value)
+  return uploaded.url
 }
 
 const save = async () => {

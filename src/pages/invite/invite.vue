@@ -18,7 +18,7 @@
       <view class="reward-card">
         <view class="reward-title">
           <text>邀好友得</text>
-          <text class="reward-number">{{ INVITE_REWARD }}</text>
+          <text class="reward-number">{{ inviteRewardPoints }}</text>
           <text>灵感值</text>
         </view>
         <text class="reward-desc">双方均可获得，获得的灵感值不过期</text>
@@ -77,7 +77,7 @@
           <view class="poster-headline">
             <view class="poster-title-row">
               <text class="poster-send">送你</text>
-              <text class="poster-number">{{ INVITE_REWARD }}</text>
+              <text class="poster-number">{{ inviteRewardPoints }}</text>
               <text class="poster-send">枚灵感值</text>
             </view>
             <view class="poster-swirl"></view>
@@ -168,13 +168,13 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import { ASSETS } from '@/config/assets'
 import { useAuthStore } from '@/stores/authStore'
+import { useAppStore } from '@/stores/appStore'
 import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
 import QrCodeGrid from '@/components/QrCodeGrid.vue'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 
-const INVITE_REWARD = 10
-
 const authStore = useAuthStore()
+const appStore = useAppStore()
 const inviteInfo = ref<InviteInfo | null>(null)
 const showLoginSheet = ref(false)
 const showPosterSheet = ref(false)
@@ -206,6 +206,7 @@ const posterSteps = [
 
 const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
 const nickname = computed(() => authStore.userProfile?.nickname || '用户昵称111')
+const inviteRewardPoints = computed(() => appStore.inviteRewardPoints)
 const inviteCode = computed(() => inviteInfo.value?.invite_code || 'AURAKEY')
 const qrValue = computed(() => `aurakey://invite?code=${encodeURIComponent(inviteCode.value)}`)
 const sharePath = computed(() => `/pages/index/index?invite_code=${encodeURIComponent(inviteCode.value)}`)
@@ -278,13 +279,13 @@ onUnmounted(() => {
 })
 
 onShareAppMessage(() => ({
-  title: `送你${INVITE_REWARD}枚灵感值`,
+  title: `送你${inviteRewardPoints.value}枚灵感值`,
   path: sharePath.value,
   imageUrl: ASSETS.logoWordmark,
 }))
 
 onShareTimeline(() => ({
-  title: `送你${INVITE_REWARD}枚灵感值`,
+  title: `送你${inviteRewardPoints.value}枚灵感值`,
   query: `invite_code=${encodeURIComponent(inviteCode.value)}`,
   imageUrl: ASSETS.logoWordmark,
 }))
