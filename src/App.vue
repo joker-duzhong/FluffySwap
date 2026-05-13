@@ -2,15 +2,17 @@
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
+import { useInviteStore } from "@/stores/inviteStore";
 import { configureClient } from "@/services/clientConfig";
 import { aurakeyApi } from "@/services/aurakey";
 import { WECHAT_CONFIG } from "@/config";
 
 const authStore = useAuthStore();
 const appStore = useAppStore();
+const inviteStore = useInviteStore();
 let profileRefreshPromise: Promise<void> | null = null;
 
-onLaunch(async () => {
+onLaunch(async (options) => {
   console.log("App Launch");
 
   // 配置 API 客户端
@@ -20,14 +22,16 @@ onLaunch(async () => {
   try {
     await loadSystemConfig();
     authStore.loadFromStorage();
+    inviteStore.captureInviteFromLaunchOptions(options);
     await silentLogin();
   } finally {
     appStore.setAppInitializing(false);
   }
 });
 
-onShow(() => {
+onShow((options) => {
   console.log("App Show");
+  inviteStore.captureInviteFromLaunchOptions(options);
 });
 
 onHide(() => {
@@ -74,6 +78,7 @@ async function refreshUserProfile() {
     try {
       const profile = await aurakeyApi.user.profile();
       authStore.setUserProfile(profile);
+      inviteStore.discardPendingInviteForBoundUser();
       console.log("User profile refreshed");
     } catch (error) {
       console.error("Failed to refresh user profile:", error);

@@ -29,6 +29,13 @@
 			}
 		},
 		{
+			"path": "pages/history/record",
+			"style": {
+				"navigationBarTitleText": "历史记录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/recharge/recharge",
 			"style": {
 				"navigationBarTitleText": "会员中心",

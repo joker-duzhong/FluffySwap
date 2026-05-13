@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import { STORAGE_KEYS } from '@/config'
 import { ASSETS } from '@/config/assets'
+import { useInviteStore } from './inviteStore'
 
 export interface UserProfile {
   user_id: string
@@ -59,10 +60,12 @@ export const useAuthStore = defineStore('auth', {
       uni.setStorageSync(STORAGE_KEYS.USER_INFO, normalizedProfile)
     },
     clearAuth() {
+      const inviteStore = useInviteStore()
       this.token = ''
       this.userProfile = null
       this.isLoggedIn = false
       this.profileLoading = false
+      inviteStore.clearBoundInviteCode()
       uni.removeStorageSync(STORAGE_KEYS.TOKEN)
       uni.removeStorageSync(STORAGE_KEYS.USER_INFO)
     },

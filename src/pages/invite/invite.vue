@@ -7,11 +7,11 @@
 
     <view class="invite-content">
       <view class="hero-copy">
-        <text class="hero-title">呼叫 灵感合伙人</text>
+        <text class="hero-title">邀请你的创作搭子</text>
         <view class="hero-subtitle">
-          <text>率先体验 </text>
-          <text class="engine-name">Image-2</text>
-          <text> 模型的精准排版</text>
+          <text>分享海报，好友注册后双方都能获得 </text>
+          <text class="engine-name">{{ inviteRewardPoints }}</text>
+          <text> 灵感值</text>
         </view>
       </view>
 
@@ -21,15 +21,25 @@
           <text class="reward-number">{{ inviteRewardPoints }}</text>
           <text>灵感值</text>
         </view>
-        <text class="reward-desc">双方均可获得，获得的灵感值不过期</text>
+        <text class="reward-desc">邀请成功后奖励自动发放到双方账户</text>
+        <view class="reward-stats">
+          <view class="reward-stat">
+            <text class="stat-label">累计邀请</text>
+            <text class="stat-value">{{ inviteInfo?.invited_count ?? 0 }}</text>
+          </view>
+          <view class="reward-stat">
+            <text class="stat-label">累计奖励</text>
+            <text class="stat-value">{{ inviteInfo?.total_reward_points ?? 0 }}</text>
+          </view>
+        </view>
         <button class="invite-button" :disabled="loading" @click="openPosterSheet">
           <view class="mini-wechat-icon">
             <view class="mini-bubble main"></view>
             <view class="mini-bubble sub"></view>
           </view>
-          <text>邀请好友</text>
+          <text>{{ loading ? '加载中...' : '邀请好友' }}</text>
         </button>
-        <text class="reward-note">*被邀请者必须为新注册用户</text>
+        <text class="reward-note">*仅新注册并成功绑定手机号的用户可被计为有效邀请</text>
       </view>
 
       <view class="rule-card">
@@ -48,7 +58,7 @@
               <view class="scan-corner lb"></view>
               <view class="scan-corner rb"></view>
             </template>
-            <text v-else>✧</text>
+            <text v-else>+</text>
           </view>
           <view class="rule-copy">
             <text class="rule-title">{{ step.title }}</text>
@@ -59,66 +69,27 @@
     </view>
 
     <view v-if="showPosterSheet" class="poster-mask" @click="closePosterSheet">
-      <view class="poster-blue-glow left"></view>
-      <view class="poster-blue-glow right"></view>
-      <view class="poster-close" @click.stop="closePosterSheet">
-        <text>×</text>
+      <view class="poster-close" :style="{ top: `${posterCloseTop}px`, right: `${posterCloseRight}px` }"
+        @click.stop="closePosterSheet">
+        <text>x</text>
       </view>
 
       <view class="poster-shell" @click.stop>
         <view class="invite-poster">
-          <view class="poster-bg soft-left"></view>
-          <view class="poster-bg soft-right"></view>
-          <view class="poster-bg ribbon left-ribbon"></view>
-          <view class="poster-bg ribbon right-ribbon"></view>
-          <view class="poster-spark top">✦</view>
-          <view class="poster-spark mid">✦</view>
+          <image class="poster-bg-image" :src="inviteBg" mode="widthFix" />
 
-          <view class="poster-headline">
-            <view class="poster-title-row">
-              <text class="poster-send">送你</text>
-              <text class="poster-number">{{ inviteRewardPoints }}</text>
-              <text class="poster-send">枚灵感值</text>
-            </view>
-            <view class="poster-swirl"></view>
-          </view>
-
-          <view class="poster-subtitle">
-            <text>体验 </text>
-            <text class="poster-brand">Image-2</text>
-            <text> 引擎</text>
-            <text class="poster-subtitle-line">驱动的精准创作</text>
-          </view>
-
-          <view class="poster-qr-card">
-            <view class="poster-user-row">
-              <image class="poster-avatar" :src="avatar" mode="aspectFill" />
-              <text>{{ nickname }}</text>
-            </view>
-            <text class="poster-invite-text">邀请你体验新一代创作引擎</text>
-            <QrCodeGrid class="poster-qr-code" :value="qrValue" :size="280" />
-          </view>
-
-          <view class="poster-steps">
-            <template v-for="(step, index) in posterSteps" :key="step.label">
-              <view class="poster-step">
-                <view class="poster-step-icon" :class="step.icon">
-                  <template v-if="step.icon === 'scan'">
-                    <view class="scan-corner lt"></view>
-                    <view class="scan-corner rt"></view>
-                    <view class="scan-corner lb"></view>
-                    <view class="scan-corner rb"></view>
-                  </template>
-                  <template v-else-if="step.icon === 'user'">
-                    <view class="user-head"></view>
-                    <view class="user-body"></view>
-                  </template>
-                  <text v-else>✦</text>
-                </view>
-                <text>{{ step.label }}</text>
+          <view class="poster-card" :style="posterCardStyle">
+            <view class="poster-user-row" :style="posterUserRowStyle">
+              <view class="poster-user-copy">
+                <image class="poster-avatar" :src="avatar" mode="aspectFill" />
+                <text class="poster-name">{{ nickname }}</text>
               </view>
-              <view v-if="index < posterSteps.length - 1" class="poster-dots">····›</view>
-            </template>
+              <text class="poster-tip">邀请你一起体验 AuraKey AI 创作</text>
+            </view>
+
+            <view class="poster-qr-wrap" :style="posterQrWrapStyle">
+              <QrCodeGrid class="poster-qr-code" :value="qrValue" :size="previewQrSize" :padding="previewQrPadding" />
+            </view>
           </view>
         </view>
 
@@ -148,16 +119,17 @@
             </view>
             <text>朋友圈</text>
           </button>
-          <button class="share-action" @click="savePoster">
+          <button class="share-action" :disabled="posterSaving" @click="savePoster">
             <view class="share-action-icon album">
               <image :src="ASSETS.iconDownload" mode="aspectFit" />
             </view>
-            <text>保存相册</text>
+            <text>{{ posterSaving ? '生成中' : '保存相册' }}</text>
           </button>
         </view>
       </view>
     </view>
 
+    <canvas canvas-id="invitePosterCanvas" class="poster-canvas" />
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
@@ -166,12 +138,30 @@
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
-import { ASSETS } from '@/config/assets'
-import { useAuthStore } from '@/stores/authStore'
-import { useAppStore } from '@/stores/appStore'
-import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
 import QrCodeGrid from '@/components/QrCodeGrid.vue'
+import { ASSETS } from '@/config/assets'
+import { useAppStore } from '@/stores/appStore'
+import { useAuthStore } from '@/stores/authStore'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
+import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
+import { buildInvitePagePath, buildInviteQrValue, buildInviteTimelineQuery } from '@/utils/invite'
+import { createQrMatrix } from '@/utils/qrCode'
+
+const CANVAS_ID = 'invitePosterCanvas'
+const POSTER_WIDTH = 900
+const POSTER_HEIGHT = 1600
+const PREVIEW_POSTER_WIDTH = 540
+const CARD_LEFT = 66
+const CARD_TOP = 318
+const CARD_WIDTH = 408
+const CARD_HEIGHT = 474
+const USER_LEFT = 26
+const USER_TOP = 40
+const AVATAR_SIZE = 32
+const AVATAR_RADIUS = 16
+const QR_WRAP_SIZE = 294
+const QR_PADDING = 11
+const QR_SIZE = 272
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -179,37 +169,38 @@ const inviteInfo = ref<InviteInfo | null>(null)
 const showLoginSheet = ref(false)
 const showPosterSheet = ref(false)
 const loading = ref(false)
+const posterSaving = ref(false)
+const posterCloseTop = ref(48)
+const posterCloseRight = ref(42)
+const previewQrSize = QR_SIZE
+const previewQrPadding = QR_PADDING
 
 const ruleSteps = [
   {
-    title: '1.分享专属海报',
-    desc: '点击“邀请好友”并将海报分享给好友',
+    title: '1.分享海报',
+    desc: '将带专属邀请码的海报发送给好友',
     icon: 'share',
   },
   {
-    title: '2.好友注册登录',
-    desc: '好友通过扫描二维码打开小程序并注册登录',
+    title: '2.好友进入小程序',
+    desc: '新用户通过分享入口进入并完成注册登录',
     icon: 'scan',
   },
   {
-    title: '3.邀请成功',
-    desc: '灵感值自动发送到双方账户中',
+    title: '3.奖励到账',
+    desc: '好友绑定手机号成功后，双方自动获得奖励',
     icon: 'spark',
   },
 ] as const
 
-const posterSteps = [
-  { label: '1.扫描二维码', icon: 'scan' },
-  { label: '2.注册登录', icon: 'user' },
-  { label: '3.获得积分', icon: 'spark' },
-] as const
-
 const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
-const nickname = computed(() => authStore.userProfile?.nickname || '用户昵称111')
+const nickname = computed(() => authStore.userProfile?.nickname || 'AuraKey 用户')
 const inviteRewardPoints = computed(() => appStore.inviteRewardPoints)
 const inviteCode = computed(() => inviteInfo.value?.invite_code || 'AURAKEY')
-const qrValue = computed(() => `aurakey://invite?code=${encodeURIComponent(inviteCode.value)}`)
-const sharePath = computed(() => `/pages/index/index?invite_code=${encodeURIComponent(inviteCode.value)}`)
+const qrValue = computed(() => buildInviteQrValue(inviteCode.value))
+const sharePath = computed(() => buildInvitePagePath(inviteCode.value))
+const shareQuery = computed(() => buildInviteTimelineQuery(inviteCode.value))
+const inviteBg = "https://zaiwen-abc.zaiwen.top/avatar/1778660893439-lj7sk7txgp.png"
 
 const goBack = () => uni.navigateBack()
 
@@ -228,19 +219,59 @@ const loadInviteInfo = async () => {
   }
 }
 
-const openPosterSheet = () => {
+const openPosterSheet = async () => {
   if (!authStore.isLoggedIn) {
     showLoginSheet.value = true
     return
   }
-  showPosterSheet.value = true
   if (!inviteInfo.value && !loading.value) {
-    loadInviteInfo()
+    await loadInviteInfo()
+  }
+  if (inviteInfo.value) {
+    showPosterSheet.value = true
   }
 }
 
 const closePosterSheet = () => {
   showPosterSheet.value = false
+}
+
+const updatePosterCloseLayout = () => {
+  try {
+    const systemInfo = uni.getSystemInfoSync()
+    const menuButton = uni.getMenuButtonBoundingClientRect()
+    const topPx = Math.max(menuButton.top || 0, systemInfo.statusBarHeight || 0) + menuButton.height + 12
+    const rightPx = Math.max((systemInfo.windowWidth || 0) - menuButton.right, 12)
+    posterCloseTop.value = Math.round(topPx)
+    posterCloseRight.value = Math.round(rightPx)
+  } catch {
+    posterCloseTop.value = 48
+    posterCloseRight.value = 42
+  }
+}
+
+const scalePoster = (value: number) => Math.round((value / PREVIEW_POSTER_WIDTH) * POSTER_WIDTH)
+const scalePosterHeight = (value: number) => Math.round((value / 960) * POSTER_HEIGHT)
+
+const posterCardStyle = {
+  left: `${CARD_LEFT}rpx`,
+  top: `${CARD_TOP}rpx`,
+  width: `${CARD_WIDTH}rpx`,
+  height: `${CARD_HEIGHT}rpx`,
+}
+
+const posterUserRowStyle = {
+  left: `${USER_LEFT}rpx`,
+  top: `${USER_TOP}rpx`,
+  right: `${USER_LEFT}rpx`,
+}
+
+const posterQrWrapStyle = {
+  left: '50%',
+  top: '128rpx',
+  width: `${QR_WRAP_SIZE}rpx`,
+  height: `${QR_WRAP_SIZE}rpx`,
+  transform: 'translateX(-50%)',
 }
 
 const shareToTimeline = () => {
@@ -250,13 +281,9 @@ const shareToTimeline = () => {
       menus: ['shareAppMessage', 'shareTimeline'],
     })
   } catch {
-    // 当前端环境不支持朋友圈分享菜单时，仍给出明确反馈。
+    // ignore
   }
   uni.showToast({ title: '请从右上角分享到朋友圈', icon: 'none' })
-}
-
-const savePoster = () => {
-  uni.showToast({ title: '海报保存能力待接入小程序画布', icon: 'none' })
 }
 
 const handleLoggedIn = () => {
@@ -269,7 +296,179 @@ const handleLoginRequired = () => {
   showLoginSheet.value = true
 }
 
+const resolveImagePath = (src: string) =>
+  new Promise<string>((resolve, reject) => {
+    uni.getImageInfo({
+      src,
+      success: (result) => resolve(result.path),
+      fail: reject,
+    })
+  })
+
+const resolveImagePathWithFallback = async (primarySrc: string, fallbackSrc = ASSETS.defaultAvatar) => {
+  try {
+    return await resolveImagePath(primarySrc)
+  } catch {
+    return resolveImagePath(fallbackSrc)
+  }
+}
+
+const drawRoundRect = (
+  ctx: UniApp.CanvasContext,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fillColor?: string,
+) => {
+  const safeRadius = Math.min(radius, width / 2, height / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + safeRadius, y)
+  ctx.lineTo(x + width - safeRadius, y)
+  ctx.arcTo(x + width, y, x + width, y + safeRadius, safeRadius)
+  ctx.lineTo(x + width, y + height - safeRadius)
+  ctx.arcTo(x + width, y + height, x + width - safeRadius, y + height, safeRadius)
+  ctx.lineTo(x + safeRadius, y + height)
+  ctx.arcTo(x, y + height, x, y + height - safeRadius, safeRadius)
+  ctx.lineTo(x, y + safeRadius)
+  ctx.arcTo(x, y, x + safeRadius, y, safeRadius)
+  ctx.closePath()
+  if (fillColor) {
+    ctx.setFillStyle(fillColor)
+    ctx.fill()
+  }
+}
+
+const drawQrCode = (ctx: UniApp.CanvasContext, value: string, startX: number, startY: number, size: number) => {
+  const matrix = createQrMatrix(value)
+  const count = matrix.length || 1
+  const cellSize = size / count
+
+  ctx.setFillStyle('#FFFFFF')
+  ctx.fillRect(startX, startY, size, size)
+  ctx.setFillStyle('#111111')
+
+  matrix.forEach((row, rowIndex) => {
+    row.forEach((cell, cellIndex) => {
+      if (!cell) return
+      ctx.fillRect(startX + cellIndex * cellSize, startY + rowIndex * cellSize, cellSize, cellSize)
+    })
+  })
+}
+
+const drawPoster = async () => {
+  const ctx = uni.createCanvasContext(CANVAS_ID)
+  const [backgroundPath, avatarPath] = await Promise.all([
+    resolveImagePath(inviteBg),
+    resolveImagePathWithFallback(avatar.value),
+  ])
+  const cardLeft = scalePoster(CARD_LEFT)
+  const cardTop = scalePosterHeight(CARD_TOP)
+  const cardWidth = scalePoster(CARD_WIDTH)
+  const cardHeight = scalePosterHeight(CARD_HEIGHT)
+  const userLeft = scalePoster(USER_LEFT)
+  const userTop = scalePosterHeight(USER_TOP)
+  const avatarSize = scalePoster(AVATAR_SIZE)
+  const avatarRadius = scalePoster(AVATAR_RADIUS)
+  const qrWrapSize = scalePoster(QR_WRAP_SIZE)
+  const qrPadding = scalePoster(QR_PADDING)
+  const qrSize = scalePoster(QR_SIZE)
+  const avatarX = cardLeft + userLeft
+  const avatarY = cardTop + userTop
+  const nameX = avatarX + avatarSize + scalePoster(12)
+  const qrWrapX = cardLeft + Math.round((cardWidth - qrWrapSize) / 2)
+  const qrWrapY = cardTop + scalePosterHeight(124)
+  const qrX = qrWrapX + qrPadding
+  const qrY = qrWrapY + qrPadding
+
+  ctx.setFillStyle('#F4F7FB')
+  ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT)
+  ctx.drawImage(backgroundPath, 0, 0, POSTER_WIDTH, POSTER_HEIGHT)
+
+  drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, avatarRadius)
+  ctx.save()
+  drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, avatarRadius)
+  ctx.clip()
+  ctx.drawImage(avatarPath, avatarX, avatarY, avatarSize, avatarSize)
+  ctx.restore()
+
+  ctx.setFillStyle('#737377')
+  ctx.setFontSize(scalePoster(18))
+  ctx.fillText(nickname.value.slice(0, 18), nameX, avatarY + scalePosterHeight(19))
+  ctx.setFillStyle('#999999')
+  ctx.setFontSize(scalePoster(14))
+  ctx.fillText('邀请你一起体验 AuraKey AI 创作', nameX, avatarY + scalePosterHeight(47))
+
+  drawQrCode(ctx, qrValue.value, qrX, qrY, qrSize)
+
+  await new Promise<void>((resolve) => ctx.draw(false, resolve))
+}
+
+const exportPoster = () =>
+  new Promise<string>((resolve, reject) => {
+    uni.canvasToTempFilePath(
+      {
+        canvasId: CANVAS_ID,
+        width: POSTER_WIDTH,
+        height: POSTER_HEIGHT,
+        destWidth: POSTER_WIDTH,
+        destHeight: POSTER_HEIGHT,
+        fileType: 'png',
+        success: (result) => resolve(result.tempFilePath),
+        fail: reject,
+      },
+    )
+  })
+
+const openPhotoAlbumSetting = () =>
+  new Promise<void>((resolve) => {
+    uni.showModal({
+      title: '需要相册权限',
+      content: '请在设置中允许保存到相册后再试一次',
+      success: (result) => {
+        if (!result.confirm) {
+          resolve()
+          return
+        }
+        uni.openSetting({
+          complete: () => resolve(),
+        })
+      },
+      fail: () => resolve(),
+    })
+  })
+
+const savePoster = async () => {
+  if (posterSaving.value) return
+  posterSaving.value = true
+  uni.showLoading({ title: '生成海报中', mask: true })
+  try {
+    await drawPoster()
+    const filePath = await exportPoster()
+    await new Promise<void>((resolve, reject) => {
+      uni.saveImageToPhotosAlbum({
+        filePath,
+        success: () => resolve(),
+        fail: reject,
+      })
+    })
+    uni.showToast({ title: '保存成功', icon: 'success' })
+  } catch (error: any) {
+    console.error('保存邀请海报失败:', error)
+    if (String(error?.errMsg || '').includes('saveImageToPhotosAlbum:fail auth deny')) {
+      await openPhotoAlbumSetting()
+    } else {
+      uni.showToast({ title: '保存失败，请检查相册权限', icon: 'none' })
+    }
+  } finally {
+    posterSaving.value = false
+    uni.hideLoading()
+  }
+}
+
 onMounted(() => {
+  updatePosterCloseLayout()
   uni.$on('auth:login-required', handleLoginRequired)
   loadInviteInfo()
 })
@@ -281,13 +480,13 @@ onUnmounted(() => {
 onShareAppMessage(() => ({
   title: `送你${inviteRewardPoints.value}枚灵感值`,
   path: sharePath.value,
-  imageUrl: ASSETS.logoWordmark,
+  imageUrl: ASSETS.invitePosterBg,
 }))
 
 onShareTimeline(() => ({
   title: `送你${inviteRewardPoints.value}枚灵感值`,
-  query: `invite_code=${encodeURIComponent(inviteCode.value)}`,
-  imageUrl: ASSETS.logoWordmark,
+  query: shareQuery.value,
+  imageUrl: ASSETS.invitePosterBg,
 }))
 </script>
 
@@ -296,7 +495,7 @@ onShareTimeline(() => ({
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: #030304;
+  background: #05070b;
   color: #fff;
 }
 
@@ -309,7 +508,7 @@ onShareTimeline(() => ({
     top: -80rpx;
     width: 460rpx;
     height: 300rpx;
-    background: radial-gradient(circle at 50% 50%, rgba(25, 92, 190, 0.2), transparent 68%);
+    background: radial-gradient(circle at 50% 50%, rgba(35, 121, 255, 0.24), transparent 68%);
   }
 
   &.right {
@@ -317,7 +516,7 @@ onShareTimeline(() => ({
     top: 190rpx;
     width: 360rpx;
     height: 320rpx;
-    background: radial-gradient(circle at 50% 50%, rgba(75, 82, 255, 0.12), transparent 70%);
+    background: radial-gradient(circle at 50% 50%, rgba(108, 181, 255, 0.18), transparent 70%);
   }
 }
 
@@ -326,7 +525,7 @@ onShareTimeline(() => ({
   z-index: 1;
   height: 1rpx;
   margin-top: -1rpx;
-  background: linear-gradient(90deg, transparent 0%, rgba(38, 63, 130, 0.58) 16%, rgba(38, 63, 130, 0.48) 70%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(69, 116, 193, 0.58) 16%, rgba(69, 116, 193, 0.48) 70%, transparent 100%);
 }
 
 .invite-content {
@@ -346,48 +545,43 @@ onShareTimeline(() => ({
 .reward-note,
 .rule-title,
 .rule-desc,
-.poster-send,
-.poster-subtitle text,
-.poster-user-row text,
-.poster-invite-text,
-.poster-step text,
 .share-title text,
 .share-action text {
   display: block;
 }
 
 .hero-title {
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 40rpx;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 42rpx;
   font-weight: 900;
-  line-height: 54rpx;
+  line-height: 56rpx;
 }
 
 .hero-subtitle {
-  margin-top: 6rpx;
+  margin-top: 8rpx;
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.54);
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.58);
   font-size: 24rpx;
   line-height: 34rpx;
 }
 
 .engine-name {
-  color: rgba(255, 255, 255, 0.68);
-  font-style: italic;
+  color: #8ed6ff;
 }
 
 .reward-card,
 .rule-card {
-  border: 1rpx solid rgba(255, 255, 255, 0.15);
+  border: 1rpx solid rgba(255, 255, 255, 0.14);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
-    radial-gradient(circle at 82% 12%, rgba(91, 123, 255, 0.12), transparent 34%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    radial-gradient(circle at 82% 12%, rgba(36, 132, 255, 0.12), transparent 34%);
   box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.08);
 }
 
 .reward-card {
-  min-height: 416rpx;
+  min-height: 464rpx;
   padding: 70rpx 40rpx 38rpx;
   border-radius: 20rpx;
   text-align: center;
@@ -405,23 +599,55 @@ onShareTimeline(() => ({
 }
 
 .reward-number {
-  color: #52f7ff;
-  font-size: 48rpx;
+  color: #61dbff;
+  font-size: 54rpx;
   font-weight: 900;
-  line-height: 54rpx;
+  line-height: 58rpx;
 }
 
 .reward-desc {
   margin-top: 14rpx;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.64);
   font-size: 24rpx;
   line-height: 34rpx;
+}
+
+.reward-stats {
+  margin-top: 30rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.reward-stat {
+  padding: 20rpx 0;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.stat-label,
+.stat-value {
+  display: block;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 22rpx;
+  line-height: 30rpx;
+}
+
+.stat-value {
+  margin-top: 10rpx;
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 42rpx;
 }
 
 .invite-button {
   width: 100%;
   height: 102rpx;
-  margin-top: 46rpx;
+  margin-top: 30rpx;
   padding: 0;
   border-radius: 18rpx;
   display: flex;
@@ -432,8 +658,8 @@ onShareTimeline(() => ({
   font-size: 28rpx;
   font-weight: 800;
   line-height: 102rpx;
-  background: linear-gradient(180deg, #5264ff 0%, #3da7ff 100%);
-  box-shadow: 0 12rpx 34rpx rgba(61, 112, 255, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, #2f78f6 0%, #1f9df3 100%);
+  box-shadow: 0 12rpx 34rpx rgba(28, 114, 242, 0.34), inset 0 2rpx 0 rgba(255, 255, 255, 0.18);
 
   &::after {
     border: 0;
@@ -471,9 +697,9 @@ onShareTimeline(() => ({
 }
 
 .reward-note {
-  margin-top: 28rpx;
-  color: rgba(255, 255, 255, 0.36);
-  font-size: 23rpx;
+  margin-top: 26rpx;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 22rpx;
   line-height: 32rpx;
 }
 
@@ -488,7 +714,7 @@ onShareTimeline(() => ({
   align-items: center;
   gap: 24rpx;
 
-  & + .rule-step {
+  &+.rule-step {
     margin-top: 34rpx;
   }
 }
@@ -503,8 +729,8 @@ onShareTimeline(() => ({
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 40rpx;
-  background: linear-gradient(135deg, rgba(36, 41, 116, 0.92), rgba(24, 25, 78, 0.92));
+  font-size: 34rpx;
+  background: linear-gradient(135deg, rgba(35, 78, 169, 0.92), rgba(26, 41, 84, 0.92));
 }
 
 .rule-copy {
@@ -606,26 +832,7 @@ onShareTimeline(() => ({
   inset: 0;
   z-index: 1200;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.96);
-}
-
-.poster-blue-glow {
-  position: absolute;
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 50%;
-  filter: blur(12rpx);
-  background: radial-gradient(circle, rgba(52, 89, 255, 0.62), transparent 68%);
-
-  &.left {
-    left: 62rpx;
-    top: 530rpx;
-  }
-
-  &.right {
-    right: 40rpx;
-    top: 518rpx;
-  }
+  background: rgba(0, 0, 0, 0.92);
 }
 
 .poster-close {
@@ -640,7 +847,7 @@ onShareTimeline(() => ({
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 56rpx;
+  font-size: 42rpx;
   line-height: 1;
   background: rgba(255, 255, 255, 0.15);
 }
@@ -657,268 +864,80 @@ onShareTimeline(() => ({
 
 .invite-poster {
   position: relative;
-  width: 530rpx;
-  height: 940rpx;
+  width: 540rpx;
+  height: 960rpx;
   overflow: hidden;
   border-radius: 32rpx;
-  background:
-    linear-gradient(158deg, #f2ccff 0%, #f9f0ff 28%, #f5f8ff 55%, #d9f5ff 100%);
   box-shadow: 0 34rpx 74rpx rgba(0, 0, 0, 0.42);
 }
 
-.poster-bg,
-.poster-spark,
-.poster-headline,
-.poster-subtitle,
-.poster-qr-card,
-.poster-steps {
-  position: relative;
+.poster-bg-image {
+  width: 100%;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+}
+
+.poster-card {
+  position: absolute;
   z-index: 1;
 }
 
-.poster-bg {
-  position: absolute;
-  z-index: 0;
-  pointer-events: none;
-
-  &.soft-left {
-    left: -124rpx;
-    top: 242rpx;
-    width: 330rpx;
-    height: 330rpx;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(188, 104, 255, 0.12), transparent 68%);
-  }
-
-  &.soft-right {
-    right: -120rpx;
-    top: 222rpx;
-    width: 310rpx;
-    height: 430rpx;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(98, 125, 255, 0.16), transparent 70%);
-  }
-
-  &.ribbon {
-    height: 260rpx;
-    border-radius: 50%;
-    border: 24rpx solid rgba(137, 110, 255, 0.13);
-  }
-
-  &.left-ribbon {
-    left: -142rpx;
-    bottom: 88rpx;
-    width: 290rpx;
-    transform: rotate(28deg);
-  }
-
-  &.right-ribbon {
-    right: -96rpx;
-    bottom: 82rpx;
-    width: 360rpx;
-    transform: rotate(-24deg);
-  }
+.poster-name,
+.poster-tip {
+  display: block;
 }
 
-.poster-spark {
-  position: absolute;
-  color: #9c6cff;
-  font-size: 24rpx;
-
-  &.top {
-    right: 56rpx;
-    top: 74rpx;
-  }
-
-  &.mid {
-    left: 88rpx;
-    top: 254rpx;
-    color: rgba(139, 111, 255, 0.45);
-  }
-}
-
-.poster-headline {
-  padding-top: 62rpx;
-}
-
-.poster-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 12rpx;
-}
-
-.poster-send {
-  color: #171234;
-  font-size: 40rpx;
-  font-weight: 900;
-  line-height: 52rpx;
-}
-
-.poster-number {
-  color: #9a62f4;
-  font-size: 98rpx;
-  font-style: italic;
-  font-weight: 900;
-  line-height: 82rpx;
-  text-shadow: 0 8rpx 20rpx rgba(117, 79, 255, 0.22);
-}
-
-.poster-swirl {
-  width: 406rpx;
-  height: 32rpx;
-  margin: -2rpx auto 0;
-  border-bottom: 8rpx solid rgba(128, 88, 237, 0.72);
-  border-radius: 0 0 50% 50%;
-  transform: rotate(-2deg);
-}
-
-.poster-subtitle {
-  width: 360rpx;
-  margin: 22rpx auto 0;
-  color: #211a42;
-  font-size: 28rpx;
-  font-weight: 900;
-  line-height: 40rpx;
-  text-align: center;
-
-  text {
-    display: inline;
-  }
-}
-
-.poster-brand {
-  color: #8f60fb;
-  font-style: italic;
-}
-
-.poster-subtitle-line {
-  display: block !important;
-}
-
-.poster-qr-card {
-  width: 398rpx;
-  min-height: 450rpx;
-  margin: 42rpx auto 0;
-  padding: 28rpx 0 32rpx;
-  border-radius: 22rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 20rpx 42rpx rgba(88, 91, 160, 0.14);
+.poster-card {
+  overflow: hidden;
 }
 
 .poster-user-row {
+  position: absolute;
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  color: #8b8991;
-  font-size: 18rpx;
-  line-height: 26rpx;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .poster-avatar {
-  width: 34rpx;
-  height: 34rpx;
+  width: 32rpx;
+  height: 32rpx;
   border-radius: 50%;
   background: #d7d7dc;
 }
 
-.poster-invite-text {
-  margin-top: 10rpx;
-  color: #b1aeb8;
+.poster-user-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.poster-name {
+  color: #737377;
   font-size: 18rpx;
-  line-height: 26rpx;
+  font-weight: 700;
+  line-height: 24rpx;
+}
+
+.poster-tip {
+  margin-top: 4rpx;
+  color: #999999;
+  font-size: 14rpx;
+  line-height: 20rpx;
+}
+
+.poster-qr-wrap {
+  position: absolute;
+  padding: 11rpx;
+  background: #fff;
+  box-sizing: border-box;
 }
 
 .poster-qr-code {
-  margin-top: 14rpx;
-}
-
-.poster-steps {
-  width: 438rpx;
-  margin: 24rpx auto 0;
-  display: grid;
-  grid-template-columns: 1fr 46rpx 1fr 46rpx 1fr;
-  align-items: start;
-}
-
-.poster-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  color: #202042;
-  font-size: 17rpx;
-  line-height: 24rpx;
-  text-align: center;
-}
-
-.poster-step-icon {
-  position: relative;
-  width: 70rpx;
-  height: 70rpx;
-  margin-bottom: 12rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9367ff;
-  font-size: 34rpx;
-  background: rgba(255, 255, 255, 0.6);
-  border: 2rpx solid rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 0 22rpx rgba(112, 111, 255, 0.18);
-
-  .scan-corner {
-    width: 14rpx;
-    height: 14rpx;
-  }
-
-  .scan-corner.lt {
-    left: 18rpx;
-    top: 18rpx;
-  }
-
-  .scan-corner.rt {
-    right: 18rpx;
-    top: 18rpx;
-  }
-
-  .scan-corner.lb {
-    left: 18rpx;
-    bottom: 18rpx;
-  }
-
-  .scan-corner.rb {
-    right: 18rpx;
-    bottom: 18rpx;
-  }
-}
-
-.user-head {
-  width: 22rpx;
-  height: 22rpx;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.user-body {
-  position: absolute;
-  left: 18rpx;
-  bottom: 16rpx;
-  width: 34rpx;
-  height: 18rpx;
-  border-radius: 18rpx 18rpx 8rpx 8rpx;
-  background: currentColor;
-}
-
-.poster-dots {
-  padding-top: 26rpx;
-  color: #9367ff;
-  font-size: 22rpx;
-  line-height: 30rpx;
-  text-align: center;
+  display: block;
 }
 
 .share-title {
@@ -967,6 +986,10 @@ onShareTimeline(() => ({
   &::after {
     border: 0;
   }
+
+  &[disabled] {
+    opacity: 0.64;
+  }
 }
 
 .share-action-icon {
@@ -985,7 +1008,7 @@ onShareTimeline(() => ({
   }
 
   &.album {
-    background: #5860ff;
+    background: #1f86f4;
 
     image {
       width: 42rpx;
@@ -1042,19 +1065,27 @@ onShareTimeline(() => ({
   width: 50rpx;
   height: 50rpx;
   border-radius: 50%;
-  background: conic-gradient(
-    #fff 0deg 34deg,
-    transparent 34deg 60deg,
-    #fff 60deg 94deg,
-    transparent 94deg 120deg,
-    #fff 120deg 154deg,
-    transparent 154deg 180deg,
-    #fff 180deg 214deg,
-    transparent 214deg 240deg,
-    #fff 240deg 274deg,
-    transparent 274deg 300deg,
-    #fff 300deg 334deg,
-    transparent 334deg 360deg
-  );
+  background: conic-gradient(#fff 0deg 34deg,
+      transparent 34deg 60deg,
+      #fff 60deg 94deg,
+      transparent 94deg 120deg,
+      #fff 120deg 154deg,
+      transparent 154deg 180deg,
+      #fff 180deg 214deg,
+      transparent 214deg 240deg,
+      #fff 240deg 274deg,
+      transparent 274deg 300deg,
+      #fff 300deg 334deg,
+      transparent 334deg 360deg);
+}
+
+.poster-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 900px;
+  height: 1600px;
+  opacity: 0;
+  pointer-events: none;
 }
 </style>

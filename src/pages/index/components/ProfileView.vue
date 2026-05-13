@@ -51,8 +51,13 @@
           class="work-preview"
           @click="openWork(item.task_id)"
         >
-          <image v-if="item.image_url" :src="item.image_url" mode="aspectFill" />
-          <view v-else class="work-placeholder" :class="{ polling: historyStore.isRunningItem(item.task_id) }">
+          <GeneratingTaskCard
+            v-if="historyStore.isRunningItem(item.task_id) || isGeneratingStatus(item.status)"
+            :progress="item.progress || historyStore.pollingProgress"
+            size="compact"
+          />
+          <image v-else-if="item.image_url" :src="item.image_url" mode="aspectFill" />
+          <view v-else class="work-placeholder">
             <text>{{ progressText(item) }}</text>
           </view>
         </view>
@@ -118,6 +123,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { aurakeyApi, type TaskHistoryItem } from '@/services/aurakey'
+import GeneratingTaskCard from '@/pages/history/components/GeneratingTaskCard.vue'
 import LoginSheet from './LoginSheet.vue'
 
 const authStore = useAuthStore()
@@ -164,6 +170,8 @@ const statusText = (status: string) => {
   }
   return map[status] || '暂无预览'
 }
+
+const isGeneratingStatus = (status: string) => status === 'pending' || status === 'processing'
 
 const progressText = (item: TaskHistoryItem) => {
   if (historyStore.isRunningItem(item.task_id)) return `${item.progress || historyStore.pollingProgress || 1}% AI绘图中...`
@@ -487,13 +495,6 @@ onUnmounted(() => {
   font-size: 22rpx;
   line-height: 30rpx;
   text-align: center;
-
-  &.polling {
-    align-items: flex-start;
-    justify-content: flex-end;
-    text-align: left;
-    background: linear-gradient(135deg, #26262c, #1a1a20);
-  }
 }
 
 .empty-work {

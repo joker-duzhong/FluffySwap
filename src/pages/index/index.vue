@@ -1,6 +1,6 @@
 <template>
   <view class="page" :class="{ locked: appLocked }">
-    <TemplateView v-show="currentTab === 'template'" @create="openCreateSheet()" />
+    <TemplateView v-show="currentTab === 'template'" @create="openCreatePage()" />
     <ProfileView v-show="currentTab === 'profile'" />
 
     <view class="custom-tabbar">
@@ -15,39 +15,30 @@
         <text class="tab-text">{{ tab.label }}</text>
       </view>
     </view>
-
-    <CreateTaskSheet
-      v-if="showCreateSheet"
-      @close="showCreateSheet = false"
-      @login-required="handleLoginRequired"
-      @submitted="handleTaskSubmitted"
-    />
-    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
     <view v-if="appLocked" class="startup-mask">
       <image :src="ASSETS.logoSymbol" mode="aspectFit" />
       <text>正在加载</text>
     </view>
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
-import { computed, onMounted, ref } from 'vue'
+import { onLoad, onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
-import { useHistoryStore } from '@/stores/historyStore'
+import { useInviteStore } from '@/stores/inviteStore'
 import { useTaskStore } from '@/stores/taskStore'
 import { ASSETS } from '@/config/assets'
-import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
 import LoginSheet from './components/LoginSheet.vue'
 import TemplateView from './components/TemplateView.vue'
 import ProfileView from './components/ProfileView.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
-const historyStore = useHistoryStore()
+const inviteStore = useInviteStore()
 const taskStore = useTaskStore()
-const showCreateSheet = ref(false)
 const showLoginSheet = ref(false)
 
 const currentTab = computed(() => appStore.currentTab)
@@ -79,33 +70,62 @@ const switchTab = (tab: TabName) => {
   appStore.setTab(tab)
 }
 
-const openCreateSheet = () => {
+const openCreatePage = () => {
   if (appLocked.value) return
-  showCreateSheet.value = true
+  taskStore.clearDraft()
+  uni.navigateTo({ url: '/pages/history/record?openCreate=1' })
 }
 
-const handleLoginRequired = () => {
-  if (appLocked.value) return
-  showLoginSheet.value = true
+const syncInviteEntry = (query?: Record<string, unknown>) => {
+  const hasInvite = inviteStore.captureInviteFromQuery(query)
+  if (hasInvite && !authStore.hasPhone) {
+    showLoginSheet.value = true
+  }
 }
 
 const handleLoggedIn = () => {
   showLoginSheet.value = false
 }
 
-const handleTaskSubmitted = (taskId: string) => {
-  showCreateSheet.value = false
-  historyStore.trackSubmittedTask(taskId, {
-    prompt: taskStore.prompt || '生成中',
-    model_name: taskStore.selectedModel,
-    aspect_ratio: taskStore.selectedRatio,
-  })
-  uni.navigateTo({ url: `/pages/history/history?taskId=${taskId}` })
+const handleLoginRequired = () => {
+  authStore.clearAuth()
+  showLoginSheet.value = true
 }
 
 onMounted(() => {
   authStore.loadFromStorage()
+  uni.$on('auth:login-required', handleLoginRequired)
 })
+
+onUnmounted(() => {
+  uni.$off('auth:login-required', handleLoginRequired)
+})
+
+onLoad((query) => {
+  syncInviteEntry(query)
+})
+
+onShow(() => {
+  if (inviteStore.hasPendingInvite && !authStore.hasPhone) {
+    showLoginSheet.value = true
+  }
+})
+
+watch(
+  () => [inviteStore.hasPendingInvite, authStore.hasPhone, authStore.profileLoading, appStore.appInitializing],
+  ([hasPendingInvite, hasPhone, profileLoading, appInitializing]) => {
+    if (hasPhone) {
+      showLoginSheet.value = false
+      inviteStore.discardPendingInviteForBoundUser()
+      return
+    }
+
+    if (hasPendingInvite && !profileLoading && !appInitializing) {
+      showLoginSheet.value = true
+    }
+  },
+  { immediate: true },
+)
 
 onShareAppMessage(() => ({
   title: SHARE_CONFIG.title,

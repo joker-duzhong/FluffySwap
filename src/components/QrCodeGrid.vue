@@ -1,60 +1,54 @@
 <template>
   <view class="qr-grid" :style="gridStyle">
-    <view
-      v-for="(cell, index) in cells"
-      :key="index"
-      class="qr-cell"
-      :class="{ dark: cell }"
-      :style="cellStyle"
-    ></view>
+    <view v-for="(row, rowIndex) in modules" :key="rowIndex" class="qr-row">
+      <view v-for="(cell, cellIndex) in row" :key="`${rowIndex}-${cellIndex}`" class="qr-cell" :class="{ dark: cell }"></view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import UQRCode from 'uqrcodejs'
+import { createQrMatrix } from '@/utils/qrCode'
 
 const props = withDefaults(
   defineProps<{
     value: string
     size?: number
+    padding?: number
   }>(),
   {
     size: 360,
+    padding: 16,
   }
 )
 
 const modules = computed<boolean[][]>(() => {
-  const qr = new UQRCode()
-  qr.data = props.value || 'aurakey'
-  qr.margin = 0
-  qr.make()
-  return qr.modules.map((row: any[]) => row.map((cell: any) => Boolean(cell?.isBlack ?? cell)))
+  return createQrMatrix(props.value)
 })
-
-const count = computed(() => modules.value.length || 1)
-const cells = computed(() => modules.value.flat())
-const cellSize = computed(() => props.size / count.value)
 
 const gridStyle = computed(() => ({
   width: `${props.size}rpx`,
   height: `${props.size}rpx`,
-}))
-
-const cellStyle = computed(() => ({
-  width: `${cellSize.value}rpx`,
-  height: `${cellSize.value}rpx`,
+  padding: `${props.padding}rpx`,
 }))
 </script>
 
 <style scoped lang="scss">
 .qr-grid {
   display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   flex-wrap: wrap;
   background: #fff;
 }
 
+.qr-row {
+  flex: 1;
+  display: flex;
+}
+
 .qr-cell {
+  flex: 1;
   background: #fff;
 }
 

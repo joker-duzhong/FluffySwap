@@ -1,30 +1,24 @@
 <template>
   <view class="history-page">
-    <AppTopNav :title="selecting ? '我的作品' : '我的作品'" back @back="goBack">
-      <template #right>
-        <button class="manage-btn" @click="toggleSelect">{{ selecting ? '取消' : '管理' }}</button>
-      </template>
-    </AppTopNav>
-    <view class="count">{{ selecting ? `已选择${selectedIds.length}个` : `共计${total || items.length}个` }}</view>
+    <AppTopNav title="我的作品" back @back="goBack" />
+    <view class="summary-row">
+      <view class="count">{{ selecting ? `已选择${selectedIds.length}个` : `共计${total || items.length}个` }}</view>
+      <button class="manage-btn" @click="toggleSelect">{{ selecting ? '取消' : '管理' }}</button>
+    </view>
 
     <scroll-view class="history-scroll" scroll-y @scrolltolower="loadMore">
       <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
       <view v-else class="grid" :class="{ selecting }">
-        <view
-          v-for="item in items"
-          :key="item.task_id"
-          class="work-item"
-          @click="handleItemClick(item)"
-        >
-          <image v-if="item.image_url" :src="item.image_url" mode="aspectFill" />
-          <view v-else class="placeholder" :class="{ polling: isPollingItem(item.task_id) }">
+        <view v-for="item in items" :key="item.task_id" class="work-item" @click="handleItemClick(item)">
+          <GeneratingTaskCard v-if="isPollingItem(item.task_id) || isGeneratingStatus(item.status)"
+            :progress="item.progress || historyStore.pollingProgress" size="compact" />
+          <image v-else-if="item.image_url" :src="item.image_url" mode="aspectFill" />
+          <view v-else class="placeholder">
             <text>{{ progressText(item) }}</text>
           </view>
           <view v-if="selecting" class="check">
-            <image
-              :src="selectedIds.includes(item.task_id) ? ASSETS.iconCheckSmall : ASSETS.iconRadioEmpty"
-              mode="aspectFit"
-            />
+            <image :src="selectedIds.includes(item.task_id) ? ASSETS.iconCheckSmall : ASSETS.iconRadioEmpty"
+              mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -46,21 +40,12 @@
         <text>删除</text>
       </view>
     </view>
-    <view v-else class="create-entry" @click="showCreateSheet = true">创作</view>
-    <CreateTaskSheet
-      v-if="showCreateSheet"
-      @close="showCreateSheet = false"
-      @login-required="showLoginSheet = true"
-      @submitted="handleTaskSubmitted"
-    />
-    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
-import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
@@ -68,7 +53,7 @@ import type { TaskHistoryItem } from '@/services/aurakey'
 import { useAuthStore } from '@/stores/authStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useTaskStore } from '@/stores/taskStore'
-import LoginSheet from '@/pages/index/components/LoginSheet.vue'
+import GeneratingTaskCard from './components/GeneratingTaskCard.vue'
 
 const authStore = useAuthStore()
 const historyStore = useHistoryStore()
@@ -76,7 +61,6 @@ const taskStore = useTaskStore()
 const selecting = ref(false)
 const selectedIds = ref<string[]>([])
 const showLoginSheet = ref(false)
-const showCreateSheet = ref(false)
 
 const items = computed(() => historyStore.items)
 const total = computed(() => historyStore.total)
@@ -90,6 +74,7 @@ const getPageOption = (key: string) => {
   return currentPage?.options?.[key] || ''
 }
 
+ 
 const loadHistory = async (reset = false) => {
   if (!authStore.isLoggedIn) {
     showLoginSheet.value = true
@@ -103,16 +88,6 @@ const loadHistory = async (reset = false) => {
 }
 
 const loadMore = () => loadHistory()
-
-const handleTaskSubmitted = (taskId: string) => {
-  showCreateSheet.value = false
-  historyStore.trackSubmittedTask(taskId, {
-    prompt: taskStore.prompt || '生成中',
-    model_name: taskStore.selectedModel,
-    aspect_ratio: taskStore.selectedRatio,
-  })
-  loadHistory(true)
-}
 
 const toggleSelect = () => {
   selecting.value = !selecting.value
@@ -164,18 +139,15 @@ const statusText = (status: string) => {
   return map[status] || '暂无预览'
 }
 
+const isGeneratingStatus = (status: string) => status === 'pending' || status === 'processing'
+
 const isPollingItem = (taskId: string) => historyStore.isRunningItem(taskId)
 
 const progressText = (item: TaskHistoryItem) => {
   if (isPollingItem(item.task_id)) return `${item.progress || historyStore.pollingProgress || 1}% AI绘图中...`
   return statusText(item.status)
 }
-
-const handleLoggedIn = () => {
-  showLoginSheet.value = false
-  loadHistory(true)
-}
-
+ 
 const handleLoginRequired = () => {
   authStore.clearAuth()
   showLoginSheet.value = true
@@ -191,7 +163,7 @@ onMounted(() => {
       aspect_ratio: taskStore.selectedRatio,
     })
   }
-  loadHistory(true)
+  void loadHistory(true)
 })
 
 onUnmounted(() => {
@@ -209,9 +181,17 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.summary-row {
+  padding: 0 28rpx 20rpx 34rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .manage-btn {
-  width: 100rpx;
+  min-width: 100rpx;
   height: 62rpx;
+  padding: 0 18rpx;
   border-radius: 14rpx;
   display: flex;
   align-items: center;
@@ -223,7 +203,6 @@ onUnmounted(() => {
 }
 
 .count {
-  padding: 28rpx 34rpx 20rpx;
   color: #fff;
   font-size: 28rpx;
 }
@@ -264,14 +243,6 @@ onUnmounted(() => {
   justify-content: center;
   color: rgba(255, 255, 255, 0.42);
   font-size: 24rpx;
-
-  &.polling {
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: 24rpx;
-    text-align: left;
-    background: linear-gradient(135deg, #26262c, #1a1a20);
-  }
 
   text {
     display: block;
@@ -320,23 +291,5 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.36);
   font-size: 24rpx;
   text-align: center;
-}
-
-.create-entry {
-  position: fixed;
-  left: 50%;
-  bottom: calc(36rpx + env(safe-area-inset-bottom));
-  width: 430rpx;
-  height: 88rpx;
-  transform: translateX(-50%);
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 700;
-  background: linear-gradient(180deg, #5a64ff 0%, #3e98ff 100%);
-  box-shadow: 0 18rpx 44rpx rgba(45, 108, 255, 0.45);
 }
 </style>

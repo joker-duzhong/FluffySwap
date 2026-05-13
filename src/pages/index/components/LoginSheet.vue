@@ -34,6 +34,7 @@ import { ref } from 'vue'
 import { ASSETS } from '@/config/assets'
 import { WECHAT_CONFIG } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
+import { useInviteStore } from '@/stores/inviteStore'
 import { aurakeyApi } from '@/services/aurakey'
 
 const emit = defineEmits<{
@@ -42,6 +43,7 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const inviteStore = useInviteStore()
 const agreed = ref(false)
 const loading = ref(false)
 
@@ -70,6 +72,7 @@ const handleLogin = () => {
         authStore.setToken(tokenRes.access_token)
         const profile = await aurakeyApi.user.profile()
         authStore.setUserProfile(profile)
+        inviteStore.discardPendingInviteForBoundUser()
         if (profile.phone) {
           uni.showToast({ title: '登录成功', icon: 'success' })
           emit('logged-in')
@@ -106,8 +109,14 @@ const handlePhoneNumber = async (event: any) => {
     const boundProfile = await aurakeyApi.auth.bindMiniappPhone(WECHAT_CONFIG.APPID, code)
     authStore.setUserProfile(boundProfile)
     try {
+      await inviteStore.bindPendingInvite()
+    } catch (error) {
+      console.error('绑定邀请码失败:', error)
+    }
+    try {
       const profile = await aurakeyApi.user.profile()
       authStore.setUserProfile(profile)
+      inviteStore.discardPendingInviteForBoundUser()
     } catch (error) {
       console.error('绑定后刷新用户资料失败:', error)
     }

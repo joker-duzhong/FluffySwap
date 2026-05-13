@@ -139,10 +139,11 @@ const handleGenerate = async () => {
       prompt: prompt.value.trim(),
       model_name: selectedModel.value,
       aspect_ratio: selectedRatio.value,
+      is_public: true
     })
     authStore.updateBalance(task.balance_after)
     taskId.value = task.task_id
-    uni.redirectTo({ url: `/pages/history/history?taskId=${task.task_id}` })
+    uni.redirectTo({ url: `/pages/history/record?taskId=${task.task_id}` })
   } catch (error: any) {
     uni.showToast({ title: error.message || '生成失败', icon: 'none' })
   } finally {

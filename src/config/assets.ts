@@ -2,6 +2,7 @@ export const ASSETS = {
   logoWordmark: '/static/common-logo-wordmark.png',
   logoSymbol: '/static/common-logo-symbol.png',
   defaultAvatar: '/static/default-avatar.png',
+  invitePosterBg: '/static/invite-poster-bg.png',
   sparkLarge: '/static/common-spark-large.png',
   vipHero: '/static/profile-vip-hero.png',
 

@@ -31,6 +31,7 @@ export const useTaskStore = defineStore('task', {
     prompt: '',
     selectedModel: '',
     selectedRatio: '1:1',
+    referenceImages: [] as string[],
 
     // 任务选项
     options: null as TaskOptions | null,
@@ -60,10 +61,18 @@ export const useTaskStore = defineStore('task', {
     setRatio(ratio: string) {
       this.selectedRatio = ratio
     },
-    applyPreset(prompt: string, ratio?: string, modelId?: string) {
+    setReferenceImages(images: string[]) {
+      this.referenceImages = images.filter(Boolean)
+    },
+    applyPreset(prompt: string, ratio?: string, modelId?: string, referenceImages: string[] = []) {
       this.prompt = prompt
       if (ratio) this.selectedRatio = ratio
       if (modelId) this.selectedModel = modelId
+      this.referenceImages = referenceImages.filter(Boolean)
+    },
+    clearDraft() {
+      this.prompt = ''
+      this.referenceImages = []
     },
     setOptions(options: TaskOptions) {
       this.options = options
@@ -94,6 +103,7 @@ export const useTaskStore = defineStore('task', {
     },
     reset() {
       this.prompt = ''
+      this.referenceImages = []
       this.currentTask = null
       this.isGenerating = false
     },
