@@ -42,12 +42,6 @@
       <view v-if="loading && items.length > 0" class="loading">加载中...</view>
       <EmptyState v-if="recordItems.length === 0 && !loading" title="暂无历史记录" description="生成任务会在这里按时间沉淀。" />
       <view id="record-bottom-anchor" class="bottom-anchor"></view>
-
-      <view class="record-item">
-        <view class="image-card">
-          <GeneratingTaskCard :progress="77" />
-        </view>
-      </view>
     </scroll-view>
 
     <view class="composer-bar" @click="openCreateSheet">

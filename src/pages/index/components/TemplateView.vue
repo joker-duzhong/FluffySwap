@@ -25,12 +25,14 @@
       :lower-threshold="120" @scrolltolower="loadMore" :refresher-enabled="items.length > 0"
       :refresher-triggered="refreshing" @refresherrefresh="refresh">
       <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
-      <view v-else-if="items.length > 0" class="template-grid">
-        <view v-for="item in items" :key="item.id" class="template-card" @click="openTemplate(item.id)">
-          <text class="card-title">{{ getCardTitle(item) }}</text>
-          <image class="card-image" :src="item.thumb_url" mode="aspectFill" />
-        </view>
-      </view>
+      <MasonryGrid v-else-if="items.length > 0" :items="items" :content-inset="18" :item-height-offset="90">
+        <template #default="{ item, imageStyle }">
+          <view class="template-card" @click="openTemplate(String(item.id))">
+            <text class="card-title">{{ item.prompt }}</text>
+            <image class="card-image" :style="imageStyle" :src="item.thumb_url" mode="aspectFill" />
+          </view>
+        </template>
+      </MasonryGrid>
       <view v-else-if="!loading" class="empty-wrap">
         <EmptyState title="暂无数据" description="快去发布一条作品吧" />
       </view>
@@ -49,6 +51,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import MasonryGrid from '@/components/MasonryGrid.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi, type GalleryCategory, type GalleryItem } from '@/services/aurakey'
@@ -194,7 +197,6 @@ onMounted(async () => {
 
 .category-list {
   display: inline-flex;
-  gap: 22rpx;
   padding: 22rpx 28rpx 28rpx;
 }
 
@@ -228,13 +230,6 @@ onMounted(async () => {
   }
 }
 
-.template-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-  padding: 0 28rpx 30rpx;
-}
-
 .empty-wrap {
   min-height: 100%;
   display: flex;
@@ -244,7 +239,6 @@ onMounted(async () => {
 
 .template-card {
   min-width: 0;
-  height: 324rpx;
   padding: 18rpx;
   border-radius: 20rpx;
   overflow: hidden;
@@ -265,7 +259,6 @@ onMounted(async () => {
 
 .card-image {
   width: 100%;
-  height: 244rpx;
   margin-top: 12rpx;
   display: block;
   border-radius: 14rpx;
