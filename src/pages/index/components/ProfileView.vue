@@ -87,13 +87,13 @@
         </view>
         <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
-      <view class="menu-item" @click="logout">
+      <!-- <view class="menu-item" @click="logout">
         <view class="menu-left">
           <image :src="ASSETS.iconLogout" mode="aspectFit" />
           <text>退出登录</text>
         </view>
         <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
-      </view>
+      </view> -->
     </view>
 
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />

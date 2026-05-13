@@ -42,6 +42,7 @@ export interface GalleryItem {
   like_count: number;
   is_liked: boolean;
   view_count: number;
+  prompt: string;
 }
 
 export interface GalleryDetail extends GalleryItem {

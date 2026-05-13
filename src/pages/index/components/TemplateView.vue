@@ -136,8 +136,8 @@ const goHistory = () => {
 }
 
 const getCardTitle = (item: GalleryItem) => {
-  if (activeCategoryId.value === ALL_CATEGORY.id) return item.aspect_ratio || '模板'
-  return activeCategory.value?.name || item.aspect_ratio || '电商海报'
+  if (activeCategoryId.value === ALL_CATEGORY.id) return item.prompt || '模板'
+  return activeCategory.value?.name || item.prompt || '电商海报'
 }
 
 onMounted(async () => {
@@ -220,7 +220,7 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   height: auto;
-  padding-bottom: calc(206rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(116rpx + env(safe-area-inset-bottom));
 
   &.empty {
     height: auto;
@@ -258,6 +258,9 @@ onMounted(async () => {
   font-size: 28rpx;
   line-height: 42rpx;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-image {
