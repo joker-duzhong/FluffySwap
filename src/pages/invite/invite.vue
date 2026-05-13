@@ -3,15 +3,13 @@
     <view class="page-glow left"></view>
     <view class="page-glow right"></view>
     <AppTopNav back @back="goBack" />
-    <view class="nav-divider"></view>
-
     <view class="invite-content">
       <view class="hero-copy">
-        <text class="hero-title">邀请你的创作搭子</text>
+        <text class="hero-title">呼叫
+          <text style="color: #fff;">灵感合伙人</text>
+        </text>
         <view class="hero-subtitle">
-          <text>分享海报，好友注册后双方都能获得 </text>
-          <text class="engine-name">{{ inviteRewardPoints }}</text>
-          <text> 灵感值</text>
+          <text>率先体验 Image-2 模型的精准排版 </text>
         </view>
       </view>
 
@@ -33,33 +31,15 @@
           </view>
         </view>
         <button class="invite-button" :disabled="loading" @click="openPosterSheet">
-          <view class="mini-wechat-icon">
-            <view class="mini-bubble main"></view>
-            <view class="mini-bubble sub"></view>
-          </view>
+          <image :src="ASSETS.iconWechat" mode="aspectFit" class="mini-wechat-icon" />
           <text>{{ loading ? '加载中...' : '邀请好友' }}</text>
         </button>
-        <text class="reward-note">*仅新注册并成功绑定手机号的用户可被计为有效邀请</text>
+        <text class="reward-note">*被邀请者必须为新注册用户</text>
       </view>
 
       <view class="rule-card">
         <view v-for="step in ruleSteps" :key="step.title" class="rule-step">
-          <view class="rule-icon" :class="step.icon">
-            <template v-if="step.icon === 'share'">
-              <view class="share-node center"></view>
-              <view class="share-node top"></view>
-              <view class="share-node bottom"></view>
-              <view class="share-line top"></view>
-              <view class="share-line bottom"></view>
-            </template>
-            <template v-else-if="step.icon === 'scan'">
-              <view class="scan-corner lt"></view>
-              <view class="scan-corner rt"></view>
-              <view class="scan-corner lb"></view>
-              <view class="scan-corner rb"></view>
-            </template>
-            <text v-else>+</text>
-          </view>
+          <image :src="step.icon" mode="aspectFit" class="rule-icon" />
           <view class="rule-copy">
             <text class="rule-title">{{ step.title }}</text>
             <text class="rule-desc">{{ step.desc }}</text>
@@ -71,7 +51,7 @@
     <view v-if="showPosterSheet" class="poster-mask" @click="closePosterSheet">
       <view class="poster-close" :style="{ top: `${posterCloseTop}px`, right: `${posterCloseRight}px` }"
         @click.stop="closePosterSheet">
-        <text>x</text>
+        <image :src="ASSETS.iconClose" class="close-icon" mode="aspectFit" />
       </view>
 
       <view class="poster-shell" @click.stop>
@@ -101,21 +81,14 @@
 
         <view class="share-actions">
           <button class="share-action" open-type="share">
-            <view class="share-action-icon wechat">
-              <view class="wechat-bubble large">
-                <view class="wechat-eye left-eye"></view>
-                <view class="wechat-eye right-eye"></view>
-              </view>
-              <view class="wechat-bubble small">
-                <view class="wechat-eye left-eye"></view>
-                <view class="wechat-eye right-eye"></view>
-              </view>
+            <view class="share-action-icon moments" mode="aspectFit">
+              <image :src="ASSETS.iconWechat" />
             </view>
             <text>微信好友</text>
           </button>
           <button class="share-action" @click="shareToTimeline">
-            <view class="share-action-icon moments">
-              <view class="moments-mark"></view>
+            <view class="share-action-icon moments" mode="aspectFit">
+              <image :src="ASSETS.iconMoments" />
             </view>
             <text>朋友圈</text>
           </button>
@@ -159,9 +132,12 @@ const USER_LEFT = 26
 const USER_TOP = 40
 const AVATAR_SIZE = 32
 const AVATAR_RADIUS = 16
+const USER_COPY_GAP = 12
+const USER_ROW_GAP = 6
 const QR_WRAP_SIZE = 294
 const QR_PADDING = 11
 const QR_SIZE = 272
+const POSTER_RADIUS = 32
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -177,19 +153,19 @@ const previewQrPadding = QR_PADDING
 
 const ruleSteps = [
   {
-    title: '1.分享海报',
-    desc: '将带专属邀请码的海报发送给好友',
-    icon: 'share',
+    title: '1.分享专属海报',
+    desc: '点击“邀请好友”并将海报分享给好友',
+    icon: ASSETS.iconShare,
   },
   {
-    title: '2.好友进入小程序',
-    desc: '新用户通过分享入口进入并完成注册登录',
-    icon: 'scan',
+    title: '2.好友注册登录',
+    desc: '好友通过扫描二维码打开小程序并注册登录',
+    icon: ASSETS.iconScanning,
   },
   {
-    title: '3.奖励到账',
-    desc: '好友绑定手机号成功后，双方自动获得奖励',
-    icon: 'spark',
+    title: '3.邀请成功',
+    desc: '灵感值自动发送到双方账户中',
+    icon: ASSETS.iconStar,
   },
 ] as const
 
@@ -252,6 +228,24 @@ const updatePosterCloseLayout = () => {
 
 const scalePoster = (value: number) => Math.round((value / PREVIEW_POSTER_WIDTH) * POSTER_WIDTH)
 const scalePosterHeight = (value: number) => Math.round((value / 960) * POSTER_HEIGHT)
+
+const estimateTextWidth = (text: string, fontSize: number) => {
+  let width = 0
+  for (const char of text) {
+    if (/[\u4e00-\u9fa5]/.test(char)) {
+      width += fontSize
+    } else if (/[A-Z0-9_]/.test(char)) {
+      width += fontSize * 0.62
+    } else if (/[a-z]/.test(char)) {
+      width += fontSize * 0.56
+    } else if (char === ' ') {
+      width += fontSize * 0.32
+    } else {
+      width += fontSize * 0.5
+    }
+  }
+  return width
+}
 
 const posterCardStyle = {
   left: `${CARD_LEFT}rpx`,
@@ -371,19 +365,33 @@ const drawPoster = async () => {
   const userTop = scalePosterHeight(USER_TOP)
   const avatarSize = scalePoster(AVATAR_SIZE)
   const avatarRadius = scalePoster(AVATAR_RADIUS)
+  const userCopyGap = scalePoster(USER_COPY_GAP)
+  const userRowGap = scalePosterHeight(USER_ROW_GAP)
   const qrWrapSize = scalePoster(QR_WRAP_SIZE)
   const qrPadding = scalePoster(QR_PADDING)
   const qrSize = scalePoster(QR_SIZE)
-  const avatarX = cardLeft + userLeft
+  const nameFontSize = scalePoster(18)
+  const nameLineHeight = scalePosterHeight(24)
+  const tipFontSize = scalePoster(14)
+  const tipLineHeight = scalePosterHeight(20)
+  const centerX = cardLeft + Math.round(cardWidth / 2)
+  const nicknameText = nickname.value.slice(0, 18)
+  const nicknameWidth = estimateTextWidth(nicknameText, nameFontSize)
+  const userCopyWidth = avatarSize + userCopyGap + nicknameWidth
+  const avatarX = centerX - Math.round(userCopyWidth / 2)
   const avatarY = cardTop + userTop
-  const nameX = avatarX + avatarSize + scalePoster(12)
+  const nameX = avatarX + avatarSize + userCopyGap
+  const nameY = avatarY + Math.round((avatarSize - nameLineHeight) / 2)
+  const tipY = avatarY + avatarSize + userRowGap
   const qrWrapX = cardLeft + Math.round((cardWidth - qrWrapSize) / 2)
   const qrWrapY = cardTop + scalePosterHeight(124)
   const qrX = qrWrapX + qrPadding
   const qrY = qrWrapY + qrPadding
+  const posterRadius = scalePoster(POSTER_RADIUS)
 
-  ctx.setFillStyle('#F4F7FB')
-  ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT)
+  ctx.save()
+  drawRoundRect(ctx, 0, 0, POSTER_WIDTH, POSTER_HEIGHT, posterRadius)
+  ctx.clip()
   ctx.drawImage(backgroundPath, 0, 0, POSTER_WIDTH, POSTER_HEIGHT)
 
   drawRoundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, avatarRadius)
@@ -393,14 +401,19 @@ const drawPoster = async () => {
   ctx.drawImage(avatarPath, avatarX, avatarY, avatarSize, avatarSize)
   ctx.restore()
 
+  ctx.setTextBaseline('top')
   ctx.setFillStyle('#737377')
-  ctx.setFontSize(scalePoster(18))
-  ctx.fillText(nickname.value.slice(0, 18), nameX, avatarY + scalePosterHeight(19))
+  ctx.setFontSize(nameFontSize)
+  ctx.fillText(nicknameText, nameX, nameY)
+  ctx.setTextAlign('center')
   ctx.setFillStyle('#999999')
-  ctx.setFontSize(scalePoster(14))
-  ctx.fillText('邀请你一起体验 AuraKey AI 创作', nameX, avatarY + scalePosterHeight(47))
+  ctx.setFontSize(tipFontSize)
+  ctx.fillText('邀请你一起体验 AuraKey AI 创作', centerX, tipY)
+  ctx.setTextAlign('left')
+  ctx.setTextBaseline('normal')
 
   drawQrCode(ctx, qrValue.value, qrX, qrY, qrSize)
+  ctx.restore()
 
   await new Promise<void>((resolve) => ctx.draw(false, resolve))
 }
@@ -520,14 +533,6 @@ onShareTimeline(() => ({
   }
 }
 
-.nav-divider {
-  position: relative;
-  z-index: 1;
-  height: 1rpx;
-  margin-top: -1rpx;
-  background: linear-gradient(90deg, transparent 0%, rgba(69, 116, 193, 0.58) 16%, rgba(69, 116, 193, 0.48) 70%, transparent 100%);
-}
-
 .invite-content {
   position: relative;
   z-index: 1;
@@ -535,7 +540,13 @@ onShareTimeline(() => ({
 }
 
 .hero-copy {
-  min-height: 158rpx;
+  background: linear-gradient(90deg, rgba(77, 73, 249, 0) 0%, rgba(77, 73, 249, 0.2) 50%, rgba(77, 73, 249, 0) 100%);
+  border: 1px solid;
+  border-image-source: linear-gradient(90deg, rgba(87, 95, 255, 0) 0%, rgba(87, 95, 255, 0.6) 50%, rgba(87, 95, 255, 0) 100%);
+  margin-bottom: 60rpx;
+  width: fit-content;
+  padding: 14px 62px 34px 36px;
+  transform: translateX(-48rpx);
 }
 
 .hero-title,
@@ -551,8 +562,8 @@ onShareTimeline(() => ({
 }
 
 .hero-title {
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 42rpx;
+  color: #FFFFFFB2;
+  font-size: 48rpx;
   font-weight: 900;
   line-height: 56rpx;
 }
@@ -567,17 +578,13 @@ onShareTimeline(() => ({
   line-height: 34rpx;
 }
 
-.engine-name {
-  color: #8ed6ff;
-}
-
 .reward-card,
 .rule-card {
   border: 1rpx solid rgba(255, 255, 255, 0.14);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
     radial-gradient(circle at 82% 12%, rgba(36, 132, 255, 0.12), transparent 34%);
-  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0px 24px 48px 0px #C7D3EA1A inset 0px -1px 1px 0px #C7D3EA33 inset 0px 1px 1px 0px #C7D3EA33 inset;
 }
 
 .reward-card {
@@ -593,14 +600,14 @@ onShareTimeline(() => ({
   justify-content: center;
   gap: 14rpx;
   color: #fff;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 800;
   line-height: 48rpx;
 }
 
 .reward-number {
-  color: #61dbff;
-  font-size: 54rpx;
+  color: #51F3F5;
+  font-size: 56rpx;
   font-weight: 900;
   line-height: 58rpx;
 }
@@ -646,7 +653,7 @@ onShareTimeline(() => ({
 
 .invite-button {
   width: 100%;
-  height: 102rpx;
+  height: 104rpx;
   margin-top: 30rpx;
   padding: 0;
   border-radius: 18rpx;
@@ -657,9 +664,10 @@ onShareTimeline(() => ({
   color: #fff;
   font-size: 28rpx;
   font-weight: 800;
-  line-height: 102rpx;
-  background: linear-gradient(180deg, #2f78f6 0%, #1f9df3 100%);
-  box-shadow: 0 12rpx 34rpx rgba(28, 114, 242, 0.34), inset 0 2rpx 0 rgba(255, 255, 255, 0.18);
+  line-height: 104rpx;
+  border: 0.5px solid #0000004D;
+  background: radial-gradient(82.42% 100% at 50.22% 100%, #5EE2FF 0%, #3850FF 100%);
+  box-shadow: 0px 0px 10px 1px #91C4FFE5 inset 0px 0px 4px 0px #00000033;
 
   &::after {
     border: 0;
@@ -671,29 +679,8 @@ onShareTimeline(() => ({
 }
 
 .mini-wechat-icon {
-  position: relative;
-  width: 42rpx;
-  height: 34rpx;
-}
-
-.mini-bubble {
-  position: absolute;
-  border-radius: 50%;
-  background: #fff;
-
-  &.main {
-    left: 0;
-    top: 2rpx;
-    width: 26rpx;
-    height: 22rpx;
-  }
-
-  &.sub {
-    right: 0;
-    bottom: 0;
-    width: 24rpx;
-    height: 20rpx;
-  }
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .reward-note {
@@ -720,17 +707,11 @@ onShareTimeline(() => ({
 }
 
 .rule-icon {
-  position: relative;
-  width: 78rpx;
-  height: 78rpx;
-  flex: 0 0 78rpx;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 34rpx;
-  background: linear-gradient(135deg, rgba(35, 78, 169, 0.92), rgba(26, 41, 84, 0.92));
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
+  background: #575FFF33;
+  padding: 24rpx;
 }
 
 .rule-copy {
@@ -748,83 +729,6 @@ onShareTimeline(() => ({
   color: rgba(255, 255, 255, 0.44);
   font-size: 24rpx;
   line-height: 34rpx;
-}
-
-.share-node {
-  position: absolute;
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 50%;
-  background: #fff;
-
-  &.center {
-    left: 32rpx;
-    top: 34rpx;
-  }
-
-  &.top {
-    right: 24rpx;
-    top: 22rpx;
-  }
-
-  &.bottom {
-    right: 24rpx;
-    bottom: 22rpx;
-  }
-}
-
-.share-line {
-  position: absolute;
-  left: 38rpx;
-  width: 22rpx;
-  height: 2rpx;
-  background: #fff;
-  transform-origin: left center;
-
-  &.top {
-    top: 36rpx;
-    transform: rotate(-28deg);
-  }
-
-  &.bottom {
-    top: 40rpx;
-    transform: rotate(28deg);
-  }
-}
-
-.scan-corner {
-  position: absolute;
-  width: 16rpx;
-  height: 16rpx;
-  border-color: currentColor;
-
-  &.lt {
-    left: 22rpx;
-    top: 22rpx;
-    border-left: 3rpx solid;
-    border-top: 3rpx solid;
-  }
-
-  &.rt {
-    right: 22rpx;
-    top: 22rpx;
-    border-right: 3rpx solid;
-    border-top: 3rpx solid;
-  }
-
-  &.lb {
-    left: 22rpx;
-    bottom: 22rpx;
-    border-left: 3rpx solid;
-    border-bottom: 3rpx solid;
-  }
-
-  &.rb {
-    right: 22rpx;
-    bottom: 22rpx;
-    border-right: 3rpx solid;
-    border-bottom: 3rpx solid;
-  }
 }
 
 .poster-mask {
@@ -850,13 +754,19 @@ onShareTimeline(() => ({
   font-size: 42rpx;
   line-height: 1;
   background: rgba(255, 255, 255, 0.15);
+
+  .close-icon {
+    display: block;
+    width: 40rpx;
+    height: 40rpx;
+  }
 }
 
 .poster-shell {
   position: relative;
   z-index: 2;
   min-height: 100vh;
-  padding: 166rpx 0 calc(62rpx + env(safe-area-inset-bottom));
+  padding: 180rpx 0 calc(62rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1009,74 +919,13 @@ onShareTimeline(() => ({
 
   &.album {
     background: #1f86f4;
-
-    image {
-      width: 42rpx;
-      height: 42rpx;
-      filter: brightness(0) invert(1);
-    }
-  }
-}
-
-.wechat-bubble {
-  position: absolute;
-  border-radius: 50%;
-  background: #fff;
-
-  &.large {
-    left: 20rpx;
-    top: 28rpx;
-    width: 36rpx;
-    height: 28rpx;
   }
 
-  &.small {
-    right: 18rpx;
-    bottom: 24rpx;
-    width: 32rpx;
-    height: 24rpx;
+  image {
+    width: 48rpx;
+    height: 48rpx;
+    filter: brightness(0) invert(1);
   }
-}
-
-.wechat-eye {
-  position: absolute;
-  top: 9rpx;
-  width: 4rpx;
-  height: 4rpx;
-  border-radius: 50%;
-  background: #05c75a;
-
-  &.left-eye {
-    left: 10rpx;
-  }
-
-  &.right-eye {
-    right: 10rpx;
-  }
-}
-
-.small .wechat-eye {
-  top: 8rpx;
-  width: 3rpx;
-  height: 3rpx;
-}
-
-.moments-mark {
-  width: 50rpx;
-  height: 50rpx;
-  border-radius: 50%;
-  background: conic-gradient(#fff 0deg 34deg,
-      transparent 34deg 60deg,
-      #fff 60deg 94deg,
-      transparent 94deg 120deg,
-      #fff 120deg 154deg,
-      transparent 154deg 180deg,
-      #fff 180deg 214deg,
-      transparent 214deg 240deg,
-      #fff 240deg 274deg,
-      transparent 274deg 300deg,
-      #fff 300deg 334deg,
-      transparent 334deg 360deg);
 }
 
 .poster-canvas {

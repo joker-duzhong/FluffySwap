@@ -28,15 +28,11 @@
 
     <view v-if="selecting" class="batch-bar">
       <view class="batch-action" @click="selectAll">
-        <text>✓</text>
+        <image :src="ASSETS.iconSelectAll" mode="aspectFit" class="icon" />
         <text>全选</text>
       </view>
-      <view class="batch-action" @click="downloadSelected">
-        <text>↓</text>
-        <text>下载</text>
-      </view>
       <view class="batch-action" @click="deleteSelected">
-        <text>□</text>
+        <image :src="ASSETS.iconDelete" mode="aspectFit" class="icon" />
         <text>删除</text>
       </view>
     </view>
@@ -74,7 +70,7 @@ const getPageOption = (key: string) => {
   return currentPage?.options?.[key] || ''
 }
 
- 
+
 const loadHistory = async (reset = false) => {
   if (!authStore.isLoggedIn) {
     showLoginSheet.value = true
@@ -147,7 +143,7 @@ const progressText = (item: TaskHistoryItem) => {
   if (isPollingItem(item.task_id)) return `${item.progress || historyStore.pollingProgress || 1}% AI绘图中...`
   return statusText(item.status)
 }
- 
+
 const handleLoginRequired = () => {
   authStore.clearAuth()
   showLoginSheet.value = true
@@ -182,7 +178,7 @@ onUnmounted(() => {
 }
 
 .summary-row {
-  padding: 0 28rpx 20rpx 34rpx;
+  padding: 16rpx 28rpx 20rpx 34rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -266,14 +262,15 @@ onUnmounted(() => {
   position: fixed;
   left: 50%;
   bottom: calc(46rpx + env(safe-area-inset-bottom));
-  width: 430rpx;
-  height: 104rpx;
+  width: 420rpx;
+  height: 112rpx;
   transform: translateX(-50%);
   border-radius: 999rpx;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: #12345a;
-  box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.36);
+  grid-template-columns: repeat(2, 1fr);
+  background: #0F0F1299;
+  border: 1px solid #FFFFFF33;
+  backdrop-filter: blur(40px)
 }
 
 .batch-action {
@@ -281,9 +278,14 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: 4rpx;
   color: #fff;
   font-size: 24rpx;
+
+  .icon {
+    width: 40rpx;
+    height: 40rpx;
+  }
 }
 
 .loading {

@@ -3,7 +3,7 @@
     <view class="nav-row" :style="rowStyle">
       <view class="nav-left" :style="leftStyle">
         <view v-if="back" class="back-btn" @click="$emit('back')">
-          <text>‹</text>
+          <image :src="ASSETS.iconChevronLeft" mode="aspectFit" class="back" />
         </view>
         <slot v-else name="left"></slot>
       </view>
@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import { ASSETS } from '@/config/assets';
 import { computed, onMounted, ref } from 'vue'
 
 withDefaults(defineProps<{
@@ -171,8 +172,8 @@ onMounted(() => {
 }
 
 .back-btn {
-  width: 56rpx;
-  height: 100%;
+  width: 48rpx;
+  height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;

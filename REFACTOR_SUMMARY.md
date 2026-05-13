@@ -139,7 +139,7 @@ background: rgba(255, 255, 255, 0.05)
 - ❌ `utils/qiniu-upload/` - 旧的七牛云上传
 - ❌ `utils/history-service.ts` - 旧的历史服务
 - ❌ `utils/model-service.ts` - 旧的模型服务
-- ❌ `utils/points-service.ts` - 旧的积分服务
+- ❌ `utils/points-service.ts` - 旧的灵感服务
 - ❌ `utils/task-service.ts` - 旧的任务服务
 
 ### 页面

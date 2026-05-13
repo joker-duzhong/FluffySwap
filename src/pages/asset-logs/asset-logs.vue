@@ -1,6 +1,6 @@
 <template>
   <view class="logs-page">
-    <AppTopNav title="积分明细" back @back="goBack" />
+    <AppTopNav title="灵感明细" back @back="goBack" />
     <view class="summary-card">
       <view class="score">
         <image :src="ASSETS.iconSpark" mode="aspectFit" />
@@ -17,7 +17,7 @@
         </view>
         <text class="amount" :class="{ plus: item.amount > 0 }">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</text>
       </view>
-      <EmptyState v-if="logs.length === 0 && !loading" title="暂无积分明细" />
+      <EmptyState v-if="logs.length === 0 && !loading" title="暂无灵感明细" />
       <view v-if="loading && logs.length > 0" class="loading">加载中...</view>
     </scroll-view>
     <button class="vip-btn" @click="goRecharge">开通会员</button>
@@ -62,7 +62,7 @@ const formatDate = (value?: string) => {
 const getLogText = (type: string | number) => {
   const value = String(type)
   if (value.includes('vip')) return '会员到期'
-  if (value.includes('sign')) return '每日免费积分'
+  if (value.includes('sign')) return '每日免费灵感'
   if (value.includes('invite')) return '生成失败返还'
   return '图片生成'
 }
@@ -116,29 +116,32 @@ onUnmounted(() => {
 }
 
 .summary-card {
-  height: 196rpx;
-  margin: 8rpx 34rpx 34rpx;
+  margin: 16rpx 34rpx 34rpx;
   border-radius: 18rpx;
+  padding: 40rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.07);
+  background: #0F0F12;
 }
 
 .score {
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  gap: 8rpx;
 
   image {
-    width: 32rpx;
-    height: 32rpx;
+    width: 40rpx;
+    height: 40rpx;
   }
 
   text {
     font-size: 66rpx;
     font-weight: 300;
+    color: #FFFFFF;
+    font-size: 72rpx;
+    font-weight: 700;
   }
 }
 
@@ -173,8 +176,8 @@ onUnmounted(() => {
 }
 
 .date {
-  margin-top: 10rpx;
-  color: rgba(255, 255, 255, 0.36);
+  margin-top: 12rpx;
+  color: #FFFFFF66;
   font-size: 24rpx;
 }
 

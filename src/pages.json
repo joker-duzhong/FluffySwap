@@ -45,7 +45,7 @@
 		{
 			"path": "pages/asset-logs/asset-logs",
 			"style": {
-				"navigationBarTitleText": "积分明细",
+				"navigationBarTitleText": "灵感明细",
 				"navigationStyle": "custom"
 			}
 		},

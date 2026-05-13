@@ -2,26 +2,16 @@
   <view class="record-page">
     <AppTopNav title="历史记录" back @back="goBack" />
 
-    <scroll-view
-      class="record-scroll"
-      scroll-y
-      :scroll-into-view="scrollIntoView"
-      :upper-threshold="80"
-      @scrolltoupper="loadPrevious"
-    >
+    <scroll-view class="record-scroll" scroll-y :scroll-into-view="scrollIntoView" :upper-threshold="80"
+      @scrolltoupper="loadPrevious">
       <view class="top-loading">
         <text v-if="loading && items.length > 0">加载中...</text>
-        <text v-else-if="!hasMore && items.length > 0">已到最早记录</text>
+        <text v-else-if="!hasMore && items.length > 0">没有更早的记录了</text>
       </view>
 
       <PageSkeleton v-if="loading && items.length === 0" variant="list" :rows="4" />
       <view v-else-if="recordItems.length > 0" class="record-list">
-        <view
-          v-for="item in recordItems"
-          :key="item.task_id"
-          :id="itemAnchor(item.task_id)"
-          class="record-item"
-        >
+        <view v-for="item in recordItems" :key="item.task_id" :id="itemAnchor(item.task_id)" class="record-item">
           <text class="prompt">{{ item.prompt || '生成记录' }}</text>
           <view class="meta-row">
             <view v-if="item.image_url" class="tag thumb-tag">
@@ -34,10 +24,7 @@
           </view>
 
           <view class="image-card" @click="openWork(item)">
-            <GeneratingTaskCard
-              v-if="isRunningItem(item)"
-              :progress="item.progress || historyStore.pollingProgress"
-            />
+            <GeneratingTaskCard v-if="isRunningItem(item)" :progress="item.progress || historyStore.pollingProgress" />
             <image v-else-if="item.image_url" :src="item.image_url" mode="widthFix" />
             <view v-else class="failed-card">
               <text>{{ statusText(item.status) }}</text>
@@ -55,6 +42,12 @@
       <view v-if="loading && items.length > 0" class="loading">加载中...</view>
       <EmptyState v-if="recordItems.length === 0 && !loading" title="暂无历史记录" description="生成任务会在这里按时间沉淀。" />
       <view id="record-bottom-anchor" class="bottom-anchor"></view>
+
+      <view class="record-item">
+        <view class="image-card">
+          <GeneratingTaskCard :progress="77" />
+        </view>
+      </view>
     </scroll-view>
 
     <view class="composer-bar" @click="openCreateSheet">
@@ -67,16 +60,9 @@
       </view>
     </view>
 
-    <CreateTaskSheet
-      v-if="showCreateSheet"
-      :preset-prompt="taskStore.prompt"
-      :preset-ratio="taskStore.selectedRatio"
-      :preset-model="taskStore.selectedModel"
-      :reference-images="taskStore.referenceImages"
-      @close="showCreateSheet = false"
-      @login-required="showLoginSheet = true"
-      @submitted="handleTaskSubmitted"
-    />
+    <CreateTaskSheet v-if="showCreateSheet" :preset-prompt="taskStore.prompt" :preset-ratio="taskStore.selectedRatio"
+      :preset-model="taskStore.selectedModel" :reference-images="taskStore.referenceImages"
+      @close="showCreateSheet = false" @login-required="showLoginSheet = true" @submitted="handleTaskSubmitted" />
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
@@ -349,7 +335,6 @@ onUnmounted(() => {
   margin-top: 12rpx;
   border-radius: 12rpx;
   overflow: hidden;
-  background: #15161c;
 
   image {
     width: 100%;

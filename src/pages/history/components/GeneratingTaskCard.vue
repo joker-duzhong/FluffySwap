@@ -6,6 +6,7 @@
         <view class="orb orb-indigo"></view>
       </view>
     </view>
+    <div class="mask"></div>
     <view class="progress">
       <text class="percent">{{ safeProgress }}%</text>
       <text class="label">{{ label }}</text>
@@ -36,9 +37,9 @@ const safeProgress = computed(() => {
 <style scoped lang="scss">
 .generating-card {
   position: relative;
-  width: 100%;
-  min-height: 360rpx;
-  border-radius: 14rpx;
+  width: 200px;
+  height: 200px;
+  border-radius: 16rpx;
   overflow: hidden;
   background:
     radial-gradient(circle at 76% 18%, rgba(255, 255, 255, 0.06), transparent 34%),
@@ -48,6 +49,17 @@ const safeProgress = computed(() => {
 .orb-stage {
   position: absolute;
   inset: 0;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(225deg, rgba(38, 38, 43, 0) 0%, rgba(38, 38, 43, 0.6) 50%, rgba(38, 38, 43, 0) 100%);
+  backdrop-filter: blur(50px);
+  border-radius: 16rpx;
 }
 
 .orb-track {
@@ -95,8 +107,7 @@ const safeProgress = computed(() => {
 
 .percent {
   color: #fff;
-  font-size: 56rpx;
-  font-weight: 800;
+  font-size: 48rpx;
   line-height: 66rpx;
 }
 

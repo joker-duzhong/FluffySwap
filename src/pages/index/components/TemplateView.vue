@@ -32,13 +32,14 @@
         </view>
       </view>
       <view v-else-if="!loading" class="empty-wrap">
-        <EmptyState title="暂无模板" description="分类已加载，模板内容会从后端画廊接口同步。" />
+        <EmptyState title="暂无数据" description="快去发布一条作品吧" />
       </view>
       <view v-if="loading && items.length > 0" class="loading">加载中...</view>
       <view v-else-if="!hasMore && items.length > 0" class="loading">没有更多了</view>
     </scroll-view>
 
     <view class="free-create" @click="$emit('create')">
+      <image :src="ASSETS.createUploadImage" mode="aspectFit" class="free-create-icon" />
       <text>自由创作</text>
     </view>
   </view>
@@ -271,7 +272,7 @@ onMounted(async () => {
 .free-create {
   position: fixed;
   left: 50%;
-  bottom: calc(120rpx + env(safe-area-inset-bottom));
+  bottom: calc(140rpx + env(safe-area-inset-bottom));
   width: 462rpx;
   height: 96rpx;
   transform: translateX(-50%);
@@ -282,9 +283,16 @@ onMounted(async () => {
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;
-  background: linear-gradient(180deg, #5a64ff 0%, #3e98ff 100%);
-  box-shadow: 0 20rpx 56rpx rgba(45, 108, 255, 0.58), inset 0 2rpx 0 rgba(255, 255, 255, 0.24);
+  background: radial-gradient(82.42% 100% at 50.22% 100%, #5EE2FF 0%, #3850FF 100%);
+  border: 0.5px solid #0000004D;
+  box-shadow: 0px 0px 4px 0px #00000033 0px 0px 10px 1px rgba(145, 196, 255, 0.8980392157) inset;
   z-index: 1001;
+
+  .free-create-icon {
+    width: 32rpx;
+    height: 32rpx;
+    margin-right: 16rpx;
+  }
 }
 
 .loading {

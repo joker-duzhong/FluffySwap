@@ -16,7 +16,7 @@
       <view v-if="isLoggedIn" class="logged-user">
         <view class="avatar-wrap" @click="showEditSheet = true">
           <image class="avatar" :src="avatar" mode="aspectFill" />
-          <view class="edit-dot">✎</view>
+          <image :src="ASSETS.iconEdit" mode="aspectFit" class="edit-dot" />
         </view>
         <text class="nickname">{{ nickname }}</text>
         <text class="phone">{{ phoneText }}</text>
@@ -33,6 +33,7 @@
         <text class="vip-desc">{{ vipDesc }}</text>
       </view>
       <view class="vip-action">{{ vipActionText }}</view>
+      <image :src="ASSETS.vipCardBg" mode="aspectFit" class="vip-bg" />
     </view>
 
     <view class="works-section">
@@ -40,22 +41,15 @@
         <text>我的作品</text>
         <view class="more" @click="goHistory">
           <text>更多</text>
-          <text class="chevron">›</text>
+          <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="chevron" />
         </view>
       </view>
-      <PageSkeleton v-if="worksLoading" variant="grid" :rows="3" />
+      <PageSkeleton v-if="worksLoading" variant="grid" :rows="2" />
       <view v-else-if="works.length > 0" class="works-row">
-        <view
-          v-for="item in works.slice(0, 3)"
-          :key="item.task_id"
-          class="work-preview"
-          @click="openWork(item.task_id)"
-        >
-          <GeneratingTaskCard
-            v-if="historyStore.isRunningItem(item.task_id) || isGeneratingStatus(item.status)"
-            :progress="item.progress || historyStore.pollingProgress"
-            size="compact"
-          />
+        <view v-for="item in works.slice(0, 3)" :key="item.task_id" class="work-preview"
+          @click="openWork(item.task_id)">
+          <GeneratingTaskCard v-if="historyStore.isRunningItem(item.task_id) || isGeneratingStatus(item.status)"
+            :progress="item.progress || historyStore.pollingProgress" size="compact" />
           <image v-else-if="item.image_url" :src="item.image_url" mode="aspectFill" />
           <view v-else class="work-placeholder">
             <text>{{ progressText(item) }}</text>
@@ -71,9 +65,9 @@
       <view class="menu-item" @click="goAssetLogs">
         <view class="menu-left">
           <image :src="ASSETS.iconWallet" mode="aspectFit" />
-          <text>积分明细</text>
+          <text>灵感明细</text>
         </view>
-        <text class="arrow">›</text>
+        <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
       <view class="menu-item" @click="goInvite">
         <view class="menu-left">
@@ -82,34 +76,29 @@
         </view>
         <view class="menu-right">
           <text>邀请好友双方各得</text>
-          <text class="highlight">{{ inviteRewardPoints }}积分</text>
-          <text class="arrow">›</text>
+          <text class="highlight">{{ inviteRewardPoints }}灵感</text>
+          <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
         </view>
       </view>
       <view class="menu-item" @click="showAgreement('user')">
         <view class="menu-left">
-          <text class="line-icon"></text>
+          <image :src="ASSETS.iconBook" mode="aspectFit" />
           <text>用户协议</text>
         </view>
-        <text class="arrow">›</text>
+        <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
       <view class="menu-item" @click="logout">
         <view class="menu-left">
           <image :src="ASSETS.iconLogout" mode="aspectFit" />
           <text>退出登录</text>
         </view>
-        <text class="arrow">›</text>
+        <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
     </view>
 
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
-    <ProfileEditSheet
-      v-if="showEditSheet"
-      :nickname="nickname"
-      :avatar="avatar"
-      @close="showEditSheet = false"
-      @saved="handleProfileSaved"
-    />
+    <ProfileEditSheet v-if="showEditSheet" :nickname="nickname" :avatar="avatar" @close="showEditSheet = false"
+      @saved="handleProfileSaved" />
   </view>
 </template>
 
@@ -279,8 +268,8 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.13);
 
   image {
-    width: 22rpx;
-    height: 22rpx;
+    width: 32rpx;
+    height: 32rpx;
   }
 
   .divider {
@@ -336,8 +325,8 @@ onUnmounted(() => {
   position: absolute;
   right: -5rpx;
   bottom: 8rpx;
-  width: 42rpx;
-  height: 42rpx;
+  width: 52rpx;
+  height: 52rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -346,6 +335,7 @@ onUnmounted(() => {
   font-size: 22rpx;
   background: rgba(36, 36, 44, 0.92);
   border: 2rpx solid rgba(255, 255, 255, 0.42);
+  padding: 16rpx;
 }
 
 .nickname {
@@ -376,15 +366,13 @@ onUnmounted(() => {
   background: linear-gradient(135deg, rgba(65, 74, 142, 0.86) 0%, rgba(75, 53, 108, 0.88) 58%, rgba(117, 67, 109, 0.9) 100%);
   border: 1rpx solid rgba(221, 201, 255, 0.3);
 
-  &::after {
+  .vip-bg {
     content: '';
     position: absolute;
-    right: 92rpx;
-    top: -42rpx;
-    width: 160rpx;
-    height: 220rpx;
-    transform: rotate(42deg);
-    background: rgba(255, 255, 255, 0.06);
+    right: 0;
+    top: 0;
+    width: 364rpx;
+    height: 144rpx;
   }
 }
 
@@ -446,9 +434,8 @@ onUnmounted(() => {
 
 .chevron,
 .arrow {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 40rpx;
-  line-height: 1;
+  margin-left: 8rpx;
+  width: 32rpx;
 }
 
 .works-row,

@@ -2,11 +2,7 @@
   <view class="sheet-mask" @click="close">
     <view class="sheet" :style="sheetStyle" @click.stop>
       <view class="reference-row">
-        <view
-          v-for="(imageUrl, index) in referenceImages"
-          :key="`${imageUrl}-${index}`"
-          class="reference-thumb"
-        >
+        <view v-for="(imageUrl, index) in referenceImages" :key="`${imageUrl}-${index}`" class="reference-thumb">
           <image :src="imageUrl" mode="aspectFill" />
           <view class="remove-thumb" @click.stop="removeImage(index)">×</view>
         </view>
@@ -16,18 +12,9 @@
       </view>
 
       <view class="input-wrap">
-        <textarea
-          v-model="prompt"
-          class="prompt-input"
-          :maxlength="1000"
-          :adjust-position="false"
-          :show-confirm-bar="false"
-          auto-height
-          :focus="autoFocus"
-          placeholder="请输入提示词"
-          @keyboardheightchange="handleKeyboardHeightChange"
-          @blur="handlePromptBlur"
-        />
+        <textarea v-model="prompt" class="prompt-input" :maxlength="1000" :adjust-position="false"
+          :show-confirm-bar="false" auto-height :focus="autoFocus" placeholder="请输入提示词"
+          @keyboardheightchange="handleKeyboardHeightChange" @blur="handlePromptBlur" />
       </view>
 
       <view class="options">
@@ -240,7 +227,7 @@ onMounted(() => {
   right: 0;
   width: 100%;
   min-height: 372rpx;
-  padding: 22rpx 20rpx calc(24rpx + env(safe-area-inset-bottom));
+  padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
   border-radius: 28rpx 28rpx 0 0;
   background: rgba(20, 20, 24, 0.98);
   box-shadow: 0 -24rpx 72rpx rgba(0, 0, 0, 0.48);
@@ -322,15 +309,13 @@ onMounted(() => {
 }
 
 .option {
-  height: 58rpx;
-  max-width: 170rpx;
-  padding: 0 16rpx;
-  border-radius: 12rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.82);
+  color: #FFFFFF;
   font-size: 24rpx;
-  background: rgba(255, 255, 255, 0.09);
+  background: #FFFFFF1A;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
