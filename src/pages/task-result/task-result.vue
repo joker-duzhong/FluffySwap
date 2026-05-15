@@ -32,27 +32,12 @@
       <EmptyState v-else title="暂无结果" description="输入提示词后开始生成。" />
     </scroll-view>
 
-    <GenerationComposer
-      v-if="mode === 'create' || isSuccess"
-      v-model:prompt="prompt"
-      :model-name="selectedModelName"
-      :ratio="selectedRatio"
-      :can-send="canSend"
-      :sending="submitting"
-      :expanded="mode === 'create'"
-      @send="handleGenerate"
-      @focus="mode = 'create'"
-      @upload="chooseImage"
-      @model="showModelPicker"
-      @ratio="showRatioPicker"
-    />
-    <WorkSharePoster
-      v-if="showSharePoster && resultImage"
-      :image-url="resultImage"
-      :prompt="prompt"
-      :task-id="taskId"
-      @close="showSharePoster = false"
-    />
+    <GenerationComposer v-if="mode === 'create' || isSuccess" v-model:prompt="prompt" :model-name="selectedModelName"
+      :ratio="selectedRatio" :can-send="canSend" :sending="submitting" :expanded="mode === 'create'"
+      @send="handleGenerate" @focus="mode = 'create'" @upload="chooseImage" @model="showModelPicker"
+      @ratio="showRatioPicker" />
+    <WorkSharePoster v-if="showSharePoster && resultImage" :image-url="resultImage" :prompt="prompt" :task-id="taskId"
+      @close="showSharePoster = false" />
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
@@ -65,6 +50,7 @@ import { ASPECT_RATIOS } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
 import { useTaskStore } from '@/stores/taskStore'
 import { aurakeyApi, type TaskModelOption } from '@/services/aurakey'
+import { uploadQiniuFile } from '@/utils/qiniu_upload'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 import GenerationComposer from './components/GenerationComposer.vue'
 import WorkSharePoster from './components/WorkSharePoster.vue'
@@ -94,6 +80,7 @@ const selectedModel = computed(() => taskStore.selectedModel)
 const selectedModelName = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.name || selectedModel.value || 'gpt-image-2')
 const selectedCost = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.cost || 0)
 const canSend = computed(() => Boolean(prompt.value.trim()) && Boolean(selectedModel.value))
+const MAX_REFERENCE_IMAGES = 9
 
 const isGenerating = computed(() => status.value === 'pending' || status.value === 'processing')
 const isSuccess = computed(() => status.value === 'success' || Boolean(resultImage.value))
@@ -139,7 +126,8 @@ const handleGenerate = async () => {
       prompt: prompt.value.trim(),
       model_name: selectedModel.value,
       aspect_ratio: selectedRatio.value,
-      is_public: true
+      is_public: true,
+      reference_images_ids: taskStore.referenceImages.map((item) => item.id),
     })
     authStore.updateBalance(task.balance_after)
     taskId.value = task.task_id
@@ -157,8 +145,8 @@ const pollTask = async () => {
     const data = await aurakeyApi.task.status(taskId.value)
     status.value = data.status as any
     progress.value = data.progress || 0
-    if (data.status === 'success' && data.image_url) {
-      resultImage.value = data.image_url
+    if (data.status === 'success' && data.resource?.url) {
+      resultImage.value = data.resource.url
       stopPolling()
     }
     if (data.status === 'failed') {
@@ -213,13 +201,40 @@ const handleLoginRequired = () => {
 }
 
 const chooseImage = () => {
+  uni.hideKeyboard()
+  if (taskStore.referenceImages.length >= MAX_REFERENCE_IMAGES) {
+    uni.showToast({ title: `最多选择${MAX_REFERENCE_IMAGES}张参考图`, icon: 'none' })
+    return
+  }
   uni.chooseImage({
-    count: 1,
-    success: () => uni.showToast({ title: '参考图已选择，接口字段预留', icon: 'none' }),
+    count: Math.max(1, MAX_REFERENCE_IMAGES - taskStore.referenceImages.length),
+    success: async (res) => {
+      const selectedImages = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths]
+      uni.showLoading({ title: '上传参考图中' })
+      try {
+        const uploaded = await Promise.all(
+          selectedImages.map((filePath) =>
+            uploadQiniuFile({
+              filePath,
+              directory: 'aurakey/reference',
+            }),
+          ),
+        )
+        taskStore.setReferenceImages(
+          taskStore.referenceImages.concat(uploaded.map((item) => item.resource)).slice(0, MAX_REFERENCE_IMAGES),
+        )
+        uni.showToast({ title: '参考图已添加', icon: 'success' })
+      } catch (error: any) {
+        uni.showToast({ title: error.message || '参考图上传失败', icon: 'none' })
+      } finally {
+        uni.hideLoading()
+      }
+    },
   })
 }
 
 const showModelPicker = () => {
+  uni.hideKeyboard()
   if (options.value.length === 0) return
   uni.showActionSheet({
     itemList: options.value.map((item) => item.name),
@@ -231,6 +246,7 @@ const showModelPicker = () => {
 }
 
 const showRatioPicker = () => {
+  uni.hideKeyboard()
   uni.showActionSheet({
     itemList: ratios.value,
     success: (res) => {
@@ -291,9 +307,12 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.55;
   }
+
   50% {
     opacity: 1;
   }

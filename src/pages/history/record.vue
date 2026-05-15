@@ -14,8 +14,8 @@
         <view v-for="item in recordItems" :key="item.task_id" :id="itemAnchor(item.task_id)" class="record-item">
           <text class="prompt">{{ item.prompt || '生成记录' }}</text>
           <view class="meta-row">
-            <view v-if="item.image_url" class="tag thumb-tag">
-              <image :src="item.image_url" mode="aspectFill" />
+            <view v-if="getReferenceThumb(item)" class="tag thumb-tag">
+              <image :src="getReferenceThumb(item)" mode="aspectFill" />
               <text>参考图</text>
             </view>
             <view class="tag">{{ item.model_name || 'GPT-Image-2' }}</view>
@@ -25,14 +25,14 @@
 
           <view class="image-card" @click="openWork(item)">
             <GeneratingTaskCard v-if="isRunningItem(item)" :progress="item.progress || historyStore.pollingProgress" />
-            <image v-else-if="item.image_url" :src="item.image_url" mode="widthFix" />
+            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="heightFix" />
             <view v-else class="failed-card">
               <text>{{ statusText(item.status) }}</text>
               <text v-if="item.failed_reason" class="failed-reason">{{ item.failed_reason }}</text>
             </view>
           </view>
 
-          <view v-if="item.image_url" class="actions">
+          <view v-if="item.resource?.url" class="actions">
             <button @click="editSame(item)">重新编辑</button>
             <button @click="regenerate(item)">再次生成</button>
             <button @click="saveImage(item)">保存</button>
@@ -147,13 +147,17 @@ const statusText = (status: string) => {
   return map[status] || '暂无预览'
 }
 
+const getReferenceThumb = (item: TaskHistoryItem) => {
+  const reference = item.reference_images?.[0]
+  return reference?.thumb_url || reference?.url || ''
+}
+
 const openWork = (item: TaskHistoryItem) => {
   if (isRunningItem(item)) return
   uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${item.task_id}` })
 }
 
 const openCreateSheet = () => {
-  taskStore.clearDraft()
   if (!authStore.isLoggedIn) {
     pendingOpenCreate.value = true
     showLoginSheet.value = true
@@ -167,7 +171,7 @@ const editSame = (item: TaskHistoryItem) => {
     item.prompt || '',
     item.aspect_ratio,
     item.model_name,
-    item.image_url ? [item.image_url] : [],
+    item.reference_images || [],
   )
   showCreateSheet.value = true
 }
@@ -178,9 +182,9 @@ const regenerate = (item: TaskHistoryItem) => {
 }
 
 const saveImage = (item: TaskHistoryItem) => {
-  if (!item.image_url) return
+  if (!item.resource?.url) return
   uni.downloadFile({
-    url: item.image_url,
+    url: item.resource.url,
     success: (res) => {
       if (res.statusCode !== 200) {
         uni.showToast({ title: '下载失败', icon: 'none' })
@@ -202,6 +206,8 @@ const handleTaskSubmitted = (taskId: string) => {
     prompt: taskStore.prompt || '生成中',
     model_name: taskStore.selectedModel,
     aspect_ratio: taskStore.selectedRatio,
+    reference_images: taskStore.referenceImages,
+    reference_images_ids: taskStore.referenceImages.map((item) => item.id),
   })
   void loadHistory(true)
 }
@@ -228,6 +234,8 @@ onMounted(() => {
       prompt: taskStore.prompt || '生成中',
       model_name: taskStore.selectedModel,
       aspect_ratio: taskStore.selectedRatio,
+      reference_images: taskStore.referenceImages,
+      reference_images_ids: taskStore.referenceImages.map((item) => item.id),
     })
   }
   if (getPageOption('openCreate') === '1') {
@@ -326,12 +334,15 @@ onUnmounted(() => {
 
 .image-card {
   width: 100%;
+  height: 200px;
   margin-top: 12rpx;
   border-radius: 12rpx;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
 
   image {
-    width: 100%;
+    height: 200px;
+    min-width: 100%;
     display: block;
   }
 }

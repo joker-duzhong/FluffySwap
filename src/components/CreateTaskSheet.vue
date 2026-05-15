@@ -2,11 +2,11 @@
   <view class="sheet-mask" @click="close">
     <view class="sheet" :style="sheetStyle" @click.stop>
       <view class="reference-row">
-        <view v-for="(imageUrl, index) in referenceImages" :key="`${imageUrl}-${index}`" class="reference-thumb">
-          <image :src="imageUrl" mode="aspectFill" />
+        <view v-for="(item, index) in referenceImages" :key="item.id" class="reference-thumb">
+          <image :src="item.thumb_url || item.url" mode="aspectFill" />
           <view class="remove-thumb" @click.stop="removeImage(index)">×</view>
         </view>
-        <view v-if="referenceImages.length < 4" class="reference-upload" @click="chooseImage">
+        <view v-if="referenceImages.length < MAX_REFERENCE_IMAGES" class="reference-upload" @tap.stop="chooseImage">
           <image :src="ASSETS.createUploadImage" mode="aspectFit" />
         </view>
       </view>
@@ -18,11 +18,11 @@
       </view>
 
       <view class="options">
-        <view class="option model-option" @click="showModelPicker">
+        <view class="option model-option" @tap.stop="showModelPicker">
           <text class="model-icon">↔</text>
           <text>{{ selectedModelName }}</text>
         </view>
-        <view class="option" @click="showRatioPicker">{{ selectedRatio }}</view>
+        <view class="option" @tap.stop="showRatioPicker">{{ selectedRatio }}</view>
         <view class="option">1K</view>
         <view class="option">✦ {{ selectedCost || 2 }}</view>
         <button class="send-btn" :disabled="!canSubmit || submitting" :loading="submitting" @click="handleSubmit">
@@ -37,22 +37,23 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ASPECT_RATIOS } from '@/config'
 import { ASSETS } from '@/config/assets'
-import { aurakeyApi, type TaskModelOption } from '@/services/aurakey'
+import { aurakeyApi, type ResourceResponse, type TaskModelOption } from '@/services/aurakey'
 import { useAuthStore } from '@/stores/authStore'
 import { useTaskStore } from '@/stores/taskStore'
+import { uploadQiniuFile } from '@/utils/qiniu_upload'
 
 const props = withDefaults(defineProps<{
   presetPrompt?: string
   presetRatio?: string
   presetModel?: string
-  referenceImage?: string
-  referenceImages?: string[]
+  referenceImage?: ResourceResponse | null
+  referenceImages?: ResourceResponse[]
   autoFocus?: boolean
 }>(), {
   presetPrompt: '',
   presetRatio: '',
   presetModel: '',
-  referenceImage: '',
+  referenceImage: null,
   referenceImages: () => [],
   autoFocus: true,
 })
@@ -71,8 +72,10 @@ const prompt = ref('')
 const selectedModel = ref('')
 const selectedRatio = ref('1:1')
 const submitting = ref(false)
-const referenceImages = ref<string[]>([])
+const referenceImages = ref<ResourceResponse[]>([])
 const keyboardHeight = ref(0)
+const MAX_REFERENCE_IMAGES = 9
+let hydratingDraft = false
 
 const selectedModelInfo = computed(() => options.value.find((item) => item.model_id === selectedModel.value))
 const selectedModelName = computed(() => selectedModelInfo.value?.name || selectedModel.value || 'gpt-image-2')
@@ -90,11 +93,13 @@ const close = () => {
 }
 
 const hydratePreset = () => {
+  hydratingDraft = true
   prompt.value = props.presetPrompt || taskStore.prompt
   selectedRatio.value = props.presetRatio || taskStore.selectedRatio || ratios.value[0] || '1:1'
   selectedModel.value = props.presetModel || taskStore.selectedModel || options.value[0]?.model_id || ''
   const presetImages = props.referenceImages.length > 0 ? props.referenceImages : props.referenceImage ? [props.referenceImage] : taskStore.referenceImages
-  referenceImages.value = presetImages.filter(Boolean)
+  referenceImages.value = presetImages.filter((image): image is ResourceResponse => Boolean(image?.id))
+  hydratingDraft = false
 }
 
 const loadOptions = async () => {
@@ -110,17 +115,33 @@ const loadOptions = async () => {
 }
 
 const chooseImage = () => {
-  if (referenceImages.value.length >= 4) {
-    uni.showToast({ title: '最多选择4张参考图', icon: 'none' })
+  uni.hideKeyboard()
+  if (referenceImages.value.length >= MAX_REFERENCE_IMAGES) {
+    uni.showToast({ title: `最多选择${MAX_REFERENCE_IMAGES}张参考图`, icon: 'none' })
     return
   }
   uni.chooseImage({
-    count: Math.max(1, 4 - referenceImages.value.length),
-    success: (res) => {
+    count: Math.max(1, MAX_REFERENCE_IMAGES - referenceImages.value.length),
+    success: async (res) => {
       const selectedImages = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths]
-      referenceImages.value = referenceImages.value.concat(selectedImages).slice(0, 4)
-      taskStore.setReferenceImages(referenceImages.value)
-      uni.showToast({ title: '参考图已选择，接口字段待后端接入', icon: 'none' })
+      uni.showLoading({ title: '上传参考图中' })
+      try {
+        const uploaded = await Promise.all(
+          selectedImages.map((filePath) =>
+            uploadQiniuFile({
+              filePath,
+              directory: 'aurakey/reference',
+            }),
+          ),
+        )
+        referenceImages.value = referenceImages.value.concat(uploaded.map((item) => item.resource)).slice(0, MAX_REFERENCE_IMAGES)
+        taskStore.setReferenceImages(referenceImages.value)
+        uni.showToast({ title: '参考图已添加', icon: 'success' })
+      } catch (error: any) {
+        uni.showToast({ title: error.message || '参考图上传失败', icon: 'none' })
+      } finally {
+        uni.hideLoading()
+      }
     },
     fail: (error: any) => {
       if (error?.errMsg?.includes('cancel')) return
@@ -135,6 +156,7 @@ const removeImage = (index: number) => {
 }
 
 const showModelPicker = () => {
+  uni.hideKeyboard()
   if (options.value.length === 0) {
     uni.showToast({ title: '模型配置加载中', icon: 'none' })
     return
@@ -149,6 +171,7 @@ const showModelPicker = () => {
 }
 
 const showRatioPicker = () => {
+  uni.hideKeyboard()
   uni.showActionSheet({
     itemList: ratios.value,
     success: (res) => {
@@ -191,6 +214,7 @@ const handleSubmit = async () => {
       model_name: selectedModel.value,
       aspect_ratio: selectedRatio.value,
       is_public: true,
+      reference_images_ids: referenceImages.value.map((item) => item.id),
     })
     authStore.updateBalance(task.balance_after)
     taskStore.applyPreset(prompt.value.trim(), selectedRatio.value, selectedModel.value, referenceImages.value)
@@ -206,6 +230,22 @@ watch(
   () => [props.presetPrompt, props.presetRatio, props.presetModel, props.referenceImage, props.referenceImages],
   hydratePreset,
 )
+
+watch(prompt, (value) => {
+  if (!hydratingDraft) taskStore.setPrompt(value)
+})
+
+watch(selectedRatio, (value) => {
+  if (!hydratingDraft) taskStore.setRatio(value)
+})
+
+watch(selectedModel, (value) => {
+  if (!hydratingDraft) taskStore.setModel(value)
+})
+
+watch(referenceImages, (value) => {
+  if (!hydratingDraft) taskStore.setReferenceImages(value)
+}, { deep: true })
 
 onMounted(() => {
   hydratePreset()

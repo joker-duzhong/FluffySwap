@@ -29,7 +29,8 @@
         <template #default="{ item, imageStyle }">
           <view class="template-card" @click="openTemplate(String(item.id))">
             <text class="card-title">{{ item.prompt }}</text>
-            <image class="card-image" :style="imageStyle" :src="item.thumb_url" mode="aspectFill" />
+            <image class="card-image" :style="imageStyle" :src="item.resource?.thumb_url || item.resource?.url"
+              mode="aspectFill" />
           </view>
         </template>
       </MasonryGrid>
@@ -135,7 +136,7 @@ const openTemplate = (id: string) => {
 }
 
 const goHistory = () => {
-  uni.navigateTo({ url: '/pages/history/history' })
+  uni.navigateTo({ url: '/pages/history/record' })
 }
 
 const getCardTitle = (item: GalleryItem) => {

@@ -541,12 +541,27 @@ onShareTimeline(() => ({
 
 .hero-copy {
   background: linear-gradient(90deg, rgba(77, 73, 249, 0) 0%, rgba(77, 73, 249, 0.2) 50%, rgba(77, 73, 249, 0) 100%);
-  border: 1px solid;
-  border-image-source: linear-gradient(90deg, rgba(87, 95, 255, 0) 0%, rgba(87, 95, 255, 0.6) 50%, rgba(87, 95, 255, 0) 100%);
+  border: 1px solid transparent;
   margin-bottom: 60rpx;
   width: fit-content;
-  padding: 14px 62px 34px 36px;
+  padding: 14px 36px;
   transform: translateX(-48rpx);
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 1rpx;
+    background: linear-gradient(90deg, rgba(87, 95, 255, 0) 0%, rgba(87, 95, 255, 0.6) 50%, rgba(87, 95, 255, 0) 100%);
+  }
+
+  &::after {
+    top: 100%;
+  }
 }
 
 .hero-title,

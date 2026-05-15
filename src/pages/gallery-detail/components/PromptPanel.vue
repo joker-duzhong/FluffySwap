@@ -1,17 +1,20 @@
 <template>
   <view class="prompt-panel">
-    <view class="prompt-title">
-      <text>提示词</text>
-      <view class="meta">
-        <image v-if="thumb" :src="thumb" mode="aspectFill" />
-        <text>参考图 | {{ model }}</text>
+    <div class="prompt-card">
+      <view class="prompt-title">
+        <text>提示词</text>
+        <view class="meta">
+          <image v-if="thumb" :src="thumb" mode="aspectFill" />
+          <text>参考图 | {{ model }}</text>
+        </view>
       </view>
-    </view>
-    <text class="prompt-text">{{ prompt }}</text>
+      <text class="prompt-text">{{ prompt }}</text>
+    </div>
+
     <view class="actions">
-      <button class="copy-btn" @click="$emit('copy')">复制</button>
+      <button class="copy-btn" @click="$emit('reference')">作为参考图</button>
       <button class="same-btn" @click="$emit('same')">
-        <image :src="ASSETS.iconSpark" mode="aspectFit" />
+        <image :src="ASSETS.iconSame" mode="aspectFit" class="icon" />
         <text>做同款</text>
       </button>
     </view>
@@ -28,7 +31,7 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (event: 'copy'): void
+  (event: 'reference'): void
   (event: 'same'): void
 }>()
 </script>
@@ -36,14 +39,20 @@ defineEmits<{
 <style scoped lang="scss">
 .prompt-panel {
   position: fixed;
-  left: 20rpx;
-  right: 20rpx;
-  bottom: calc(38rpx + env(safe-area-inset-bottom));
-  padding: 0 0 20rpx;
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom);
+  padding: 24rpx;
   border-radius: 28rpx;
   background: rgba(31, 31, 33, 0.94);
   overflow: hidden;
   z-index: 20;
+}
+
+.prompt-card {
+  border-radius: 24rpx;
+  background: #FFFFFF1A;
+  padding: 24rpx;
 }
 
 .prompt-title {
@@ -55,7 +64,7 @@ defineEmits<{
   color: #fff;
   font-size: 28rpx;
   font-weight: 700;
-  background: linear-gradient(90deg, rgba(86, 72, 38, 0.95), rgba(54, 50, 42, 0.9));
+  border-bottom: 1px solid #FFFFFF0D
 }
 
 .meta {
@@ -83,35 +92,41 @@ defineEmits<{
 }
 
 .actions {
-  margin-top: 20rpx;
-  padding: 0 24rpx;
+  margin-top: 24rpx;
   display: grid;
-  grid-template-columns: 1fr 1.7fr;
+  grid-template-columns: 1fr 1.3fr;
   gap: 18rpx;
 }
 
 .copy-btn,
 .same-btn {
-  height: 88rpx;
-  border-radius: 18rpx;
+  height: 104rpx;
+  border-radius: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 88rpx;
+  line-height: 104rpx;
   font-size: 30rpx;
   font-weight: 700;
+
+  .icon {
+    width: 32rpx;
+    height: 32rpx;
+  }
 }
 
 .copy-btn {
   color: #fff;
   background: transparent;
-  border: 1rpx solid rgba(255, 255, 255, 0.16);
+  border: 0.5px solid #FFFFFF33;
 }
 
 .same-btn {
   gap: 14rpx;
   color: #fff;
-  background: linear-gradient(180deg, #5a64ff 0%, #3e98ff 100%);
+  background: radial-gradient(82.42% 100% at 50.22% 100%, #5EE2FF 0%, #3850FF 100%);
+  box-shadow: 0px 0px 10px 1px #91C4FFE5 inset;
+  border: 0.5px solid #0000004D;
 
   image {
     width: 28rpx;

@@ -4,18 +4,12 @@
 
     <PageSkeleton v-if="loading" variant="detail" :rows="1" />
     <view v-else-if="detail" class="image-wrap">
-      <image class="poster-image" :src="detail.image_url || detail.thumb_url" mode="widthFix" />
+      <image class="poster-image" :src="detail.resource?.url" mode="widthFix" @click="togglePromptPanel" />
     </view>
     <EmptyState v-else-if="!loading" title="模板不存在" description="请返回模板页重新选择。" />
 
-    <PromptPanel
-      v-if="detail"
-      :prompt="detail.prompt"
-      :model="detail.model_name"
-      :thumb="detail.thumb_url"
-      @copy="copyPrompt"
-      @same="createSame"
-    />
+    <PromptPanel v-if="detail && showPromptPanel" :prompt="detail.prompt" :model="detail.model_name"
+      :thumb="detail.resource?.thumb_url || undefined" @reference="createWithReference" @same="createSame" />
   </view>
 </template>
 
@@ -31,8 +25,13 @@ import PromptPanel from './components/PromptPanel.vue'
 const taskStore = useTaskStore()
 const detail = ref<GalleryDetail | null>(null)
 const loading = ref(false)
+const showPromptPanel = ref(true)
 
 const goBack = () => uni.navigateBack()
+
+const togglePromptPanel = () => {
+  showPromptPanel.value = !showPromptPanel.value
+}
 
 const getPageOption = (key: string) => {
   const pages = getCurrentPages()
@@ -40,19 +39,16 @@ const getPageOption = (key: string) => {
   return currentPage?.options?.[key] || ''
 }
 
-const copyPrompt = () => {
-  if (!detail.value) return
-  uni.setClipboardData({
-    data: detail.value.prompt,
-    success: () => uni.showToast({ title: '已复制', icon: 'success' }),
-  })
-}
-
 const createSame = () => {
   if (!detail.value) return
-  const referenceImages = [detail.value.thumb_url || detail.value.image_url].filter(Boolean)
-  taskStore.applyPreset(detail.value.prompt, detail.value.aspect_ratio, detail.value.model_name, referenceImages)
+  taskStore.applyPreset(detail.value.prompt, detail.value.aspect_ratio, detail.value.model_name)
   uni.navigateTo({ url: `/pages/history/record?openCreate=1&from=same&id=${detail.value.id}` })
+}
+
+const createWithReference = () => {
+  if (!detail.value) return
+  taskStore.applyPreset(detail.value.prompt, detail.value.aspect_ratio, detail.value.model_name, [detail.value.resource])
+  uni.navigateTo({ url: `/pages/history/record?openCreate=1&from=reference&id=${detail.value.id}` })
 }
 
 const loadDetail = async () => {
@@ -62,6 +58,7 @@ const loadDetail = async () => {
   loading.value = true
   try {
     detail.value = await aurakeyApi.gallery.detail(id)
+    showPromptPanel.value = true
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载失败', icon: 'none' })
   } finally {

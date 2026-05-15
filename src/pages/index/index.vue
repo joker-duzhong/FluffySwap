@@ -29,7 +29,6 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useInviteStore } from '@/stores/inviteStore'
-import { useTaskStore } from '@/stores/taskStore'
 import { ASSETS } from '@/config/assets'
 import LoginSheet from './components/LoginSheet.vue'
 import TemplateView from './components/TemplateView.vue'
@@ -38,7 +37,6 @@ import ProfileView from './components/ProfileView.vue'
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const inviteStore = useInviteStore()
-const taskStore = useTaskStore()
 const showLoginSheet = ref(false)
 
 const currentTab = computed(() => appStore.currentTab)
@@ -72,7 +70,6 @@ const switchTab = (tab: TabName) => {
 
 const openCreatePage = () => {
   if (appLocked.value) return
-  taskStore.clearDraft()
   uni.navigateTo({ url: '/pages/history/record?openCreate=1' })
 }
 

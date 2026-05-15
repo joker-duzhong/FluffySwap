@@ -13,12 +13,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { ResourceResponse } from '../services/aurakey';
 
 interface MasonryGridItem {
   id: string | number
   aspect_ratio?: string | number | null
   prompt: string
-  image_url?: string | null
+  resource?: ResourceResponse
 }
 
 interface MasonryGridEntry<TItem extends MasonryGridItem> {

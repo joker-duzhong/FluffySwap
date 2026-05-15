@@ -36,7 +36,6 @@ export interface AuthorInfo {
 
 export interface GalleryItem {
   id: string;
-  thumb_url: string;
   aspect_ratio: string;
   author: AuthorInfo;
   like_count: number;
@@ -46,14 +45,18 @@ export interface GalleryItem {
 }
 
 export interface GalleryDetail extends GalleryItem {
-  image_url: string;
+  resource: ResourceResponse;
   prompt: string;
   model_name: string;
+  reference_images_ids?: string[];
+  reference_images?: ResourceResponse[];
 }
 
 export interface TaskHistoryItem {
   task_id: string;
-  image_url: string | null;
+  resource?: ResourceResponse;
+  reference_images_ids?: string[];
+  reference_images?: ResourceResponse[];
   prompt: string;
   status: "pending" | "processing" | "success" | "failed" | string;
   progress?: number | null;
@@ -81,7 +84,9 @@ export interface TaskGeneratePayload {
   prompt: string;
   model_name: string;
   aspect_ratio: string;
-  is_public: boolean;
+  is_public?: boolean;
+  category_id?: string | null;
+  reference_images_ids?: string[];
 }
 
 export interface TaskGenerateResponse {
@@ -94,7 +99,9 @@ export interface TaskStatusResponse {
   task_id: string;
   status: "pending" | "processing" | "success" | "failed" | string;
   progress: number;
-  image_url?: string | null;
+  resource?: ResourceResponse;
+  reference_images_ids?: string[];
+  reference_images?: ResourceResponse[];
   failed_reason?: string | null;
 }
 
@@ -136,7 +143,11 @@ export interface ResourceResponse {
   thumb_url?: string | null;
   size: number;
   type: string;
+  scope?: string | null;
   hash: string;
+  owner?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface InviteInfo {

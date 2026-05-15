@@ -1,6 +1,6 @@
 <template>
   <view class="composer" :class="{ expanded }">
-    <view class="upload-btn" @click="$emit('upload')">
+    <view class="upload-btn" @tap.stop="$emit('upload')">
       <image :src="ASSETS.createUploadImage" mode="aspectFit" />
     </view>
     <textarea
@@ -12,8 +12,8 @@
       @focus="$emit('focus')"
     />
     <view class="options">
-      <view class="option" @click="$emit('model')">{{ modelName }} ⇄</view>
-      <view class="option" @click="$emit('ratio')">{{ ratio }}</view>
+      <view class="option" @tap.stop="$emit('model')">{{ modelName }} ⇄</view>
+      <view class="option" @tap.stop="$emit('ratio')">{{ ratio }}</view>
       <view class="option">1K</view>
       <view class="option">+2</view>
       <button class="send-btn" :disabled="!canSend || sending" :loading="sending" @click="$emit('send')">

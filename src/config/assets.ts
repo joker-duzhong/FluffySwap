@@ -1,7 +1,7 @@
 export const ASSETS = {
   logoWordmark: "/static/common-logo-wordmark.png",
   logoSymbol: "/static/common-logo-symbol.png",
-  defaultAvatar: "/static/default-avatar.png",
+  defaultAvatar: "/static/logoSymbol.png",
   invitePosterBg: "/static/invite-poster-bg.png",
   sparkLarge: "/static/common-spark-large.png",
   vipHero: "/static/profile-vip-hero.png",
@@ -32,6 +32,7 @@ export const ASSETS = {
   iconScanning: "/static/scanning.png",
   iconDelete: "/static/delete.png",
   iconSelectAll: "/static/select-all.png",
+  iconSame: "/static/same.png",
 
   createUploadImage: "/static/create-icon-upload-image.png",
   createSend: "/static/create-icon-send.png",

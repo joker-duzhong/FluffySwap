@@ -12,7 +12,7 @@
         <view v-for="item in items" :key="item.task_id" class="work-item" @click="handleItemClick(item)">
           <GeneratingTaskCard v-if="isPollingItem(item.task_id) || isGeneratingStatus(item.status)"
             :progress="item.progress || historyStore.pollingProgress" size="compact" />
-          <image v-else-if="item.image_url" :src="item.image_url" mode="aspectFill" />
+          <image v-else-if="item.resource?.thumb_url" :src="item.resource.thumb_url" mode="aspectFill" />
           <view v-else class="placeholder">
             <text>{{ progressText(item) }}</text>
           </view>

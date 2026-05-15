@@ -1,37 +1,38 @@
 /**
  * 生图任务状态管理
  */
-import { defineStore } from 'pinia'
+import type { ResourceResponse } from "@/services/aurakey";
+import { defineStore } from "pinia";
 
 export interface TaskOptions {
   models: Array<{
-    model_id: string
-    name: string
-    cost: number
-    is_vip_only?: boolean
-  }>
-  aspect_ratios: string[]
+    model_id: string;
+    name: string;
+    cost: number;
+    is_vip_only?: boolean;
+  }>;
+  aspect_ratios: string[];
 }
 
 export interface GenerateTask {
-  task_id: string
-  status: 'pending' | 'processing' | 'success' | 'failed'
-  progress: number
-  image_url?: string
-  failed_reason?: string
-  prompt: string
-  model_name: string
-  aspect_ratio: string
-  cost: number
+  task_id: string;
+  status: "pending" | "processing" | "success" | "failed";
+  progress: number;
+  resource?: ResourceResponse;
+  failed_reason?: string;
+  prompt: string;
+  model_name: string;
+  aspect_ratio: string;
+  cost: number;
 }
 
-export const useTaskStore = defineStore('task', {
+export const useTaskStore = defineStore("task", {
   state: () => ({
     // 创作参数
-    prompt: '',
-    selectedModel: '',
-    selectedRatio: '1:1',
-    referenceImages: [] as string[],
+    prompt: "",
+    selectedModel: "",
+    selectedRatio: "1:1",
+    referenceImages: [] as ResourceResponse[],
 
     // 任务选项
     options: null as TaskOptions | null,
@@ -44,68 +45,60 @@ export const useTaskStore = defineStore('task', {
   }),
   getters: {
     canGenerate: (state) => {
-      return state.prompt.trim().length > 0 && state.selectedModel && !state.isGenerating
+      return state.prompt.trim().length > 0 && state.selectedModel && !state.isGenerating;
     },
     selectedModelInfo: (state) => {
-      if (!state.options || !state.selectedModel) return null
-      return state.options.models.find((m) => m.model_id === state.selectedModel)
+      if (!state.options || !state.selectedModel) return null;
+      return state.options.models.find((m) => m.model_id === state.selectedModel);
     },
   },
   actions: {
     setPrompt(prompt: string) {
-      this.prompt = prompt
+      this.prompt = prompt;
     },
     setModel(modelId: string) {
-      this.selectedModel = modelId
+      this.selectedModel = modelId;
     },
     setRatio(ratio: string) {
-      this.selectedRatio = ratio
+      this.selectedRatio = ratio;
     },
-    setReferenceImages(images: string[]) {
-      this.referenceImages = images.filter(Boolean)
+    setReferenceImages(images: ResourceResponse[]) {
+      this.referenceImages = images.filter((image) => Boolean(image?.id));
     },
-    applyPreset(prompt: string, ratio?: string, modelId?: string, referenceImages: string[] = []) {
-      this.prompt = prompt
-      if (ratio) this.selectedRatio = ratio
-      if (modelId) this.selectedModel = modelId
-      this.referenceImages = referenceImages.filter(Boolean)
+    applyPreset(prompt: string, ratio?: string, modelId?: string, referenceImages: ResourceResponse[] = []) {
+      this.prompt = prompt;
+      if (ratio) this.selectedRatio = ratio;
+      if (modelId) this.selectedModel = modelId;
+      this.referenceImages = referenceImages.filter((image) => Boolean(image?.id));
     },
     clearDraft() {
-      this.prompt = ''
-      this.referenceImages = []
+      this.prompt = "";
+      this.referenceImages = [];
     },
     setOptions(options: TaskOptions) {
-      this.options = options
+      this.options = options;
       // 默认选择第一个模型
       if (options.models.length > 0 && !this.selectedModel) {
-        this.selectedModel = options.models[0].model_id
+        this.selectedModel = options.models[0].model_id;
       }
       if (options.aspect_ratios.length > 0 && !options.aspect_ratios.includes(this.selectedRatio)) {
-        this.selectedRatio = options.aspect_ratios[0]
+        this.selectedRatio = options.aspect_ratios[0];
       }
     },
     setCurrentTask(task: GenerateTask | null) {
-      this.currentTask = task
-    },
-    updateTaskStatus(status: string, progress: number, imageUrl?: string, failedReason?: string) {
-      if (this.currentTask) {
-        this.currentTask.status = status as any
-        this.currentTask.progress = progress
-        if (imageUrl) this.currentTask.image_url = imageUrl
-        if (failedReason) this.currentTask.failed_reason = failedReason
-      }
+      this.currentTask = task;
     },
     startGenerating() {
-      this.isGenerating = true
+      this.isGenerating = true;
     },
     stopGenerating() {
-      this.isGenerating = false
+      this.isGenerating = false;
     },
     reset() {
-      this.prompt = ''
-      this.referenceImages = []
-      this.currentTask = null
-      this.isGenerating = false
+      this.prompt = "";
+      this.referenceImages = [];
+      this.currentTask = null;
+      this.isGenerating = false;
     },
   },
-})
+});
