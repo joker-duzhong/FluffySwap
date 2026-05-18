@@ -25,15 +25,8 @@
       :lower-threshold="120" @scrolltolower="loadMore" :refresher-enabled="items.length > 0"
       :refresher-triggered="refreshing" @refresherrefresh="refresh">
       <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
-      <MasonryGrid v-else-if="items.length > 0" :items="items" :content-inset="18" :item-height-offset="90">
-        <template #default="{ item, imageStyle }">
-          <view class="template-card" @click="openTemplate(String(item.id))">
-            <text class="card-title">{{ item.prompt }}</text>
-            <image class="card-image" :style="imageStyle" :src="item.resource?.thumb_url || item.resource?.url"
-              mode="aspectFill" />
-          </view>
-        </template>
-      </MasonryGrid>
+      <MasonryGrid v-else-if="items.length > 0" :items="items" :content-inset="18" :item-height-offset="90"
+        @item-click="openTemplate(String($event.id))" />
       <view v-else-if="!loading" class="empty-wrap">
         <EmptyState title="暂无数据" description="快去发布一条作品吧" />
       </view>
@@ -223,7 +216,7 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   height: auto;
-  padding-bottom: calc(116rpx + env(safe-area-inset-bottom));
+  // padding-bottom: calc(116rpx + env(safe-area-inset-bottom));
 
   &.empty {
     height: auto;
@@ -236,34 +229,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.template-card {
-  min-width: 0;
-  padding: 18rpx;
-  border-radius: 20rpx;
-  overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
-}
-
-.card-title {
-  display: block;
-  height: 42rpx;
-  color: #fff;
-  font-size: 28rpx;
-  line-height: 42rpx;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card-image {
-  width: 100%;
-  margin-top: 12rpx;
-  display: block;
-  border-radius: 14rpx;
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .free-create {

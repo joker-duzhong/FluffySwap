@@ -12,7 +12,15 @@
       <PageSkeleton v-if="loading && items.length === 0" variant="list" :rows="4" />
       <view v-else-if="recordItems.length > 0" class="record-list">
         <view v-for="item in recordItems" :key="item.task_id" :id="itemAnchor(item.task_id)" class="record-item">
-          <text class="prompt">{{ item.prompt || '生成记录' }}</text>
+          <view v-if="isPromptExpanded(item.task_id)" class="prompt-wrap prompt-wrap-expanded">
+            <text user-select class="prompt">{{ item.prompt || '生成记录' }}</text>
+            <text class="prompt-toggle prompt-toggle-inline" @click.stop="togglePromptExpanded(item.task_id)">收起</text>
+          </view>
+          <view v-else class="prompt-wrap">
+            <text user-select class="prompt">{{ item.prompt || '生成记录' }}</text>
+            <text class="prompt-toggle prompt-toggle-collapsed"
+              @click.stop="togglePromptExpanded(item.task_id)">展开</text>
+          </view>
           <view class="meta-row">
             <view v-if="getReferenceThumb(item)" class="tag thumb-tag">
               <image :src="getReferenceThumb(item)" mode="aspectFill" @click="previewImage(getReferenceThumb(item))" />
@@ -96,6 +104,7 @@ const showCreateSheet = ref(false)
 const showLoginSheet = ref(false)
 const scrollIntoView = ref('')
 const pendingOpenCreate = ref(false)
+const expandedPromptMap = ref<Record<string, boolean>>({})
 
 const items = computed(() => historyStore.items)
 const loading = computed(() => historyStore.loading)
@@ -112,6 +121,14 @@ const getPageOption = (key: string) => {
 
 const itemAnchor = (taskId: string) => `record-item-${taskId.replace(/[^A-Za-z0-9_-]/g, '-')}`
 
+const isPromptExpanded = (taskId: string) => Boolean(expandedPromptMap.value[taskId])
+
+const togglePromptExpanded = (taskId: string) => {
+  expandedPromptMap.value = {
+    ...expandedPromptMap.value,
+    [taskId]: !expandedPromptMap.value[taskId],
+  }
+}
 
 const scrollToAnchor = (anchorId: string) => {
   scrollIntoView.value = ''
@@ -311,11 +328,43 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.prompt-wrap {
+  position: relative;
+  max-height: 60px;
+  margin-bottom: 12rpx;
+  overflow: hidden;
+}
+
+.prompt-wrap-expanded {
+  max-height: none;
+  overflow: visible;
+}
+
 .prompt {
+  display: inline;
   color: #fff;
   font-size: 28rpx;
   line-height: 20px;
-  margin-bottom: 12rpx;
+  word-break: break-all;
+}
+
+.prompt-toggle {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 24rpx;
+  line-height: 20px;
+}
+
+.prompt-toggle-inline {
+  display: inline;
+  margin-left: 8rpx;
+}
+
+.prompt-toggle-collapsed {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding-left: 12rpx;
+  background: #050506;
 }
 
 .meta-row {

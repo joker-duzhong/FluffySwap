@@ -13,7 +13,9 @@
     />
     <view class="options">
       <view class="option" @tap.stop="$emit('model')">{{ modelName }} ⇄</view>
-      <view class="option" @tap.stop="$emit('ratio')">{{ ratio }}</view>
+      <picker mode="selector" :range="ratios" :value="selectedRatioIndex" @change="handleRatioChange">
+        <view class="option">{{ ratio }}</view>
+      </picker>
       <view class="option">1K</view>
       <view class="option">+2</view>
       <button class="send-btn" :disabled="!canSend || sending" :loading="sending" @click="$emit('send')">
@@ -31,6 +33,7 @@ const props = defineProps<{
   prompt: string
   modelName: string
   ratio: string
+  ratios: string[]
   canSend: boolean
   sending?: boolean
   expanded?: boolean
@@ -42,13 +45,21 @@ const emit = defineEmits<{
   (event: 'focus'): void
   (event: 'upload'): void
   (event: 'model'): void
-  (event: 'ratio'): void
+  (event: 'ratio', value: string): void
 }>()
 
 const innerPrompt = computed({
   get: () => props.prompt,
   set: (value) => emit('update:prompt', value),
 })
+
+const selectedRatioIndex = computed(() => Math.max(0, props.ratios.indexOf(props.ratio)))
+
+const handleRatioChange = (event: { detail?: { value?: string | number } }) => {
+  const index = Number(event.detail?.value)
+  const ratio = props.ratios[index]
+  if (ratio) emit('ratio', ratio)
+}
 </script>
 
 <style scoped lang="scss">

@@ -18,14 +18,18 @@
       </view>
 
       <view class="options options-wrap">
-        <div class="options-wrap">
-          <view class="option model-option" @tap.stop="showModelPicker">
-            <text>{{ selectedModelName }}</text>
-            <image class="icon" :src="ASSETS.iconSwitch" mode="aspectFit" />
-          </view>
-          <view class="option" @tap.stop="showRatioPicker">{{ selectedRatio }}</view>
+        <view class="options-wrap">
+          <picker mode="selector" :range="modelNames" :value="selectedModelIndex" @change="handleModelChange">
+            <view class="option model-option">
+              <text>{{ selectedModelName }}</text>
+              <image class="icon" :src="ASSETS.iconSwitch" mode="aspectFit" />
+            </view>
+          </picker>
+          <picker mode="selector" :range="ratios" :value="selectedRatioIndex" @change="handleRatioChange">
+            <view class="option">{{ selectedRatio }}</view>
+          </picker>
           <!-- <view class="option">1K</view> -->
-        </div>
+        </view>
         <view class="options-wrap">
           <view>
             <image class="icon" :src="ASSETS.iconSpark" mode="aspectFit" />
@@ -86,8 +90,11 @@ let hydratingDraft = false
 
 const selectedModelInfo = computed(() => options.value.find((item) => item.model_id === selectedModel.value))
 const selectedModelName = computed(() => selectedModelInfo.value?.name || selectedModel.value || 'gpt-image-2')
+const modelNames = computed(() => options.value.map((item) => item.name))
+const selectedModelIndex = computed(() => Math.max(0, options.value.findIndex((item) => item.model_id === selectedModel.value)))
 const selectedCost = computed(() => selectedModelInfo.value?.cost || 0)
 const canSubmit = computed(() => Boolean(prompt.value.trim()) && Boolean(selectedModel.value))
+const selectedRatioIndex = computed(() => Math.max(0, ratios.value.indexOf(selectedRatio.value)))
 const sheetStyle = computed(() => ({
   bottom: keyboardHeight.value > 0 ? `${keyboardHeight.value}px` : '0px',
 }))
@@ -167,29 +174,22 @@ const removeImage = (index: number) => {
   taskStore.setReferenceImages(referenceImages.value)
 }
 
-const showModelPicker = () => {
+const handleModelChange = (event: { detail?: { value?: string | number } }) => {
   uni.hideKeyboard()
   if (options.value.length === 0) {
     uni.showToast({ title: '模型配置加载中', icon: 'none' })
     return
   }
-  uni.showActionSheet({
-    itemList: options.value.map((item) => item.name),
-    success: (res) => {
-      const model = options.value[res.tapIndex]
-      if (model) selectedModel.value = model.model_id
-    },
-  })
+  const index = Number(event.detail?.value)
+  const model = options.value[index]
+  if (model) selectedModel.value = model.model_id
 }
 
-const showRatioPicker = () => {
+const handleRatioChange = (event: { detail?: { value?: string | number } }) => {
   uni.hideKeyboard()
-  uni.showActionSheet({
-    itemList: ratios.value,
-    success: (res) => {
-      selectedRatio.value = ratios.value[res.tapIndex]
-    },
-  })
+  const index = Number(event.detail?.value)
+  const ratio = ratios.value[index]
+  if (ratio) selectedRatio.value = ratio
 }
 
 const handleKeyboardHeightChange = (event: { detail?: { height?: number } }) => {

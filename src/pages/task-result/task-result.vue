@@ -33,7 +33,7 @@
     </scroll-view>
 
     <GenerationComposer v-if="mode === 'create' || isSuccess" v-model:prompt="prompt" :model-name="selectedModelName"
-      :ratio="selectedRatio" :can-send="canSend" :sending="submitting" :expanded="mode === 'create'"
+      :ratio="selectedRatio" :ratios="ratios" :can-send="canSend" :sending="submitting" :expanded="mode === 'create'"
       @send="handleGenerate" @focus="mode = 'create'" @upload="chooseImage" @model="showModelPicker"
       @ratio="showRatioPicker" />
     <WorkSharePoster v-if="showSharePoster && resultImage" :image-url="resultImage" :prompt="prompt" :task-id="taskId"
@@ -245,14 +245,9 @@ const showModelPicker = () => {
   })
 }
 
-const showRatioPicker = () => {
+const showRatioPicker = (ratio: string) => {
   uni.hideKeyboard()
-  uni.showActionSheet({
-    itemList: ratios.value,
-    success: (res) => {
-      taskStore.setRatio(ratios.value[res.tapIndex])
-    },
-  })
+  if (ratios.value.includes(ratio)) taskStore.setRatio(ratio)
 }
 
 onMounted(async () => {

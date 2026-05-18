@@ -3,9 +3,10 @@
     <view v-for="(column, columnIndex) in masonryColumns" :key="columnIndex" class="masonry-column"
       :style="getColumnStyle(columnIndex)">
       <view v-for="(entry, entryIndex) in column.items" :key="entry.item.id" class="masonry-cell"
-        :style="getCellStyle(entryIndex)">
-        <slot :item="entry.item" :index="entry.index" :column-index="columnIndex" :image-height="entry.imageHeight"
-          :image-style="getImageStyle(entry.imageHeight)" />
+        :style="getCellStyle(entryIndex)" @click="emit('item-click', entry.item)">
+        <text class="card-title">{{ entry.item.prompt || '模板' }}</text>
+        <image class="card-image" :style="getImageStyle(entry.imageHeight)" :src="getImageSource(entry.item)"
+          mode="aspectFill" />
       </view>
     </view>
   </view>
@@ -57,14 +58,8 @@ const props = withDefaults(defineProps<{
   fallbackAspectRatio: '1:1',
 })
 
-defineSlots<{
-  default(props: {
-    item: SlotItem
-    index: number
-    columnIndex: number
-    imageHeight: number
-    imageStyle: Record<string, string>
-  }): unknown
+const emit = defineEmits<{
+  (event: 'item-click', item: SlotItem): void
 }>()
 
 const columnCount = computed(() => Math.max(1, Math.floor(props.columns)))
@@ -125,6 +120,7 @@ const masonryColumns = computed<MasonryGridColumn<SlotItem>[]>(() => {
 
 const gridStyle = computed(() => ({
   padding: `0 ${props.paddingX}rpx ${props.paddingBottom}rpx`,
+  paddingBottom: `calc(${props.paddingBottom}rpx + env(safe-area-inset-bottom))`,
 }))
 
 const getColumnStyle = (columnIndex: number) => ({
@@ -138,6 +134,8 @@ const getCellStyle = (entryIndex: number) => ({
 const getImageStyle = (imageHeight: number) => ({
   height: `${imageHeight}rpx`,
 })
+
+const getImageSource = (item: SlotItem) => item.resource?.thumb_url || item.resource?.url || ''
 </script>
 
 <style scoped lang="scss">
@@ -156,5 +154,29 @@ const getImageStyle = (imageHeight: number) => ({
 
 .masonry-cell {
   min-width: 0;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+}
+
+.card-title {
+  display: block;
+  height: 42rpx;
+  color: #fff;
+  font-size: 28rpx;
+  line-height: 42rpx;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-image {
+  width: 100%;
+  margin-top: 12rpx;
+  display: block;
+  border-radius: 14rpx;
+  background: rgba(255, 255, 255, 0.08);
 }
 </style>
