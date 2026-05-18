@@ -34,11 +34,14 @@
           </view>
 
           <view v-if="item.status == 'success' || item.status == 'failed'" class="actions">
-            <button @click="editSame(item)">
+            <button @click="editSame(item)" v-if="item.status == 'success'">
               <image class="icon" :src="ASSETS.iconEdit1" mode="aspectFit" />
               重新编辑
             </button>
-            <!-- <button @click="regenerate(item)">再次生成</button> -->
+            <button @click="regenerate(item)" v-if="item.status == 'failed'">
+              <image class="icon" :src="ASSETS.iconReload" mode="aspectFit" />
+              再次生成
+            </button>
             <button @click="saveImage(item)" v-if="item.resource?.url">
               <image class="icon" :src="ASSETS.iconDownload" mode="aspectFit" />
               保存
@@ -342,10 +345,8 @@ onUnmounted(() => {
 
 .image-card {
   width: 100%;
-  height: 200px;
   margin-top: 24rpx;
   border-radius: 12rpx;
-  overflow: hidden;
   // background: rgba(255, 255, 255, 0.08);
 
   image {
@@ -357,6 +358,7 @@ onUnmounted(() => {
 .failed-card {
   width: 400rpx;
   height: 400rpx;
+  border-radius: 24rpx;
   display: flex;
   flex-direction: column;
   justify-content: center;

@@ -229,7 +229,7 @@ const handleSubmit = async () => {
       reference_images_ids: referenceImages.value.map((item) => item.id),
     })
     authStore.updateBalance(task.balance_after)
-    taskStore.applyPreset(prompt.value.trim(), selectedRatio.value, selectedModel.value, referenceImages.value)
+    taskStore.applyPreset("", selectedRatio.value, selectedModel.value, [])
     emit('submitted', task.task_id)
   } catch (error: any) {
     uni.showToast({ title: error.message || '提交任务失败', icon: 'none' })
