@@ -25,7 +25,10 @@
 
           <view class="image-card" @click="previewImage(item.resource?.url)">
             <GeneratingTaskCard v-if="isRunningItem(item)" :progress="item.progress || historyStore.pollingProgress" />
-            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="heightFix" />
+            <view class="image-watermark-wrap" v-else-if="item.resource?.url">
+              <image :src="item.resource.url" mode="heightFix" />
+              <view class="watermark">AI生成</view>
+            </view>
             <view v-else class="failed-card">
               <image class="icon" :src="ASSETS.iconImageError" mode="widthFix" />
               <text class="failed-status">{{ statusText(item.status) }}</text>
@@ -347,11 +350,30 @@ onUnmounted(() => {
   width: 100%;
   margin-top: 24rpx;
   border-radius: 12rpx;
+  position: relative;
   // background: rgba(255, 255, 255, 0.08);
+
+  .image-watermark-wrap {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+  }
 
   image {
     height: 200px;
     display: block;
+  }
+
+  .watermark {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #FFFFFF66;
+    color: #FFFFFF66;
+    font-size: 12px;
+    line-height: 16px;
   }
 }
 
