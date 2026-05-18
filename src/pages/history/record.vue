@@ -15,7 +15,7 @@
           <text class="prompt">{{ item.prompt || '生成记录' }}</text>
           <view class="meta-row">
             <view v-if="getReferenceThumb(item)" class="tag thumb-tag">
-              <image :src="getReferenceThumb(item)" mode="aspectFill" />
+              <image :src="getReferenceThumb(item)" mode="aspectFill" @click="previewImage(getReferenceThumb(item))" />
               <text>参考图</text>
             </view>
             <view class="tag" v-if="item.model_name">{{ item.model_name }}</view>
@@ -23,22 +23,23 @@
             <!-- <view class="tag">{{ item.cost || 0 }}</view> -->
           </view>
 
-          <view class="image-card" @click="openWork(item)">
+          <view class="image-card" @click="previewImage(item.resource?.url)">
             <GeneratingTaskCard v-if="isRunningItem(item)" :progress="item.progress || historyStore.pollingProgress" />
-            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="aspectFill" />
+            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="heightFix" />
             <view v-else class="failed-card">
-              <text>{{ statusText(item.status) }}</text>
+              <image class="icon" :src="ASSETS.iconImageError" mode="widthFix" />
+              <text class="failed-status">{{ statusText(item.status) }}</text>
               <text v-if="item.failed_reason" class="failed-reason">{{ item.failed_reason }}</text>
             </view>
           </view>
 
-          <view v-if="item.status !=" class="actions">
+          <view v-if="item.status == 'success' || item.status == 'failed'" class="actions">
             <button @click="editSame(item)">
               <image class="icon" :src="ASSETS.iconEdit1" mode="aspectFit" />
               重新编辑
             </button>
             <!-- <button @click="regenerate(item)">再次生成</button> -->
-            <button @click="saveImage(item)">
+            <button @click="saveImage(item)" v-if="item.resource?.url">
               <image class="icon" :src="ASSETS.iconDownload" mode="aspectFit" />
               保存
             </button>
@@ -150,7 +151,7 @@ const statusText = (status: string) => {
   const map: Record<string, string> = {
     pending: '排队中',
     processing: '生成中',
-    failed: '生成失败',
+    failed: '图片生成失败',
   }
   return map[status] || '暂无预览'
 }
@@ -165,6 +166,10 @@ const openWork = (item: TaskHistoryItem) => {
   uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${item.task_id}` })
 }
 
+const previewImage = (resultImage?: string) => {
+  if (resultImage) uni.previewImage({ urls: [resultImage] })
+}
+
 const openCreateSheet = () => {
   if (!authStore.isLoggedIn) {
     pendingOpenCreate.value = true
@@ -175,17 +180,12 @@ const openCreateSheet = () => {
 }
 
 const editSame = (item: TaskHistoryItem) => {
-  taskStore.applyPreset(
-    item.prompt || '',
-    item.aspect_ratio,
-    item.model_name,
-    item.reference_images || [],
-  )
+  taskStore.applyPreset(item.prompt || '', item.aspect_ratio, item.model_name, item.reference_images || [])
   showCreateSheet.value = true
 }
 
 const regenerate = (item: TaskHistoryItem) => {
-  taskStore.applyPreset(item.prompt || '', item.aspect_ratio, item.model_name)
+  taskStore.applyPreset(item.prompt || '', item.aspect_ratio, item.model_name, item.reference_images || [])
   showCreateSheet.value = true
 }
 
@@ -307,7 +307,8 @@ onUnmounted(() => {
 
 .prompt {
   color: #fff;
-  font-size: 26rpx;
+  font-size: 28rpx;
+  line-height: 20px;
   margin-bottom: 12rpx;
 }
 
@@ -349,7 +350,6 @@ onUnmounted(() => {
 
   image {
     height: 200px;
-    min-width: 100%;
     display: block;
   }
 }
@@ -360,14 +360,26 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-content: center;
+  align-items: center;
   gap: 12rpx;
   color: rgba(255, 255, 255, 0.78);
   font-size: 28rpx;
   background: linear-gradient(135deg, #24252b, #17181e);
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.failed-status {
+  width: fit-content;
+  font-size: 24rpx;
+  color: #FFFFFF66;
 }
 
 .failed-reason {
+  width: fit-content;
   color: rgba(255, 255, 255, 0.46);
   font-size: 24rpx;
   line-height: 34rpx;

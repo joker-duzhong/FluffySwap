@@ -35,6 +35,7 @@ export const ASSETS = {
   iconSelectAll: "/static/select-all.png",
   iconSame: "/static/same.png",
   iconSwitch: "/static/switch.png",
+  iconImageError: "/static/image-error.png",
 
   createUploadImage: "/static/create-icon-upload-image.png",
   createSend: "/static/create-icon-send.png",
