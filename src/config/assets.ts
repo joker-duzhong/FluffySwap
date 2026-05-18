@@ -24,6 +24,7 @@ export const ASSETS = {
   iconChevronRight: "/static/common-icon-chevron-right.png",
   iconBook: "/static/common-icon-book.png",
   iconEdit: "/static/common-icon-edit.png",
+  iconEdit1: "/static/common-icon-edit-1.png",
   iconWechat: "/static/common-icon-wechat.png",
   iconMoments: "/static/common-icon-moments.png",
 
@@ -33,6 +34,7 @@ export const ASSETS = {
   iconDelete: "/static/delete.png",
   iconSelectAll: "/static/select-all.png",
   iconSame: "/static/same.png",
+  iconSwitch: "/static/switch.png",
 
   createUploadImage: "/static/create-icon-upload-image.png",
   createSend: "/static/create-icon-send.png",

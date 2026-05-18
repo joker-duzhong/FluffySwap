@@ -18,24 +18,30 @@
               <image :src="getReferenceThumb(item)" mode="aspectFill" />
               <text>参考图</text>
             </view>
-            <view class="tag">{{ item.model_name || 'GPT-Image-2' }}</view>
+            <view class="tag" v-if="item.model_name">{{ item.model_name }}</view>
             <view v-if="item.aspect_ratio" class="tag">{{ item.aspect_ratio }}</view>
-            <view class="tag">{{ item.cost || 0 }}k</view>
+            <!-- <view class="tag">{{ item.cost || 0 }}</view> -->
           </view>
 
           <view class="image-card" @click="openWork(item)">
             <GeneratingTaskCard v-if="isRunningItem(item)" :progress="item.progress || historyStore.pollingProgress" />
-            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="heightFix" />
+            <image v-else-if="item.resource?.url" :src="item.resource.url" mode="aspectFill" />
             <view v-else class="failed-card">
               <text>{{ statusText(item.status) }}</text>
               <text v-if="item.failed_reason" class="failed-reason">{{ item.failed_reason }}</text>
             </view>
           </view>
 
-          <view v-if="item.resource?.url" class="actions">
-            <button @click="editSame(item)">重新编辑</button>
-            <button @click="regenerate(item)">再次生成</button>
-            <button @click="saveImage(item)">保存</button>
+          <view v-if="item.status !=" class="actions">
+            <button @click="editSame(item)">
+              <image class="icon" :src="ASSETS.iconEdit1" mode="aspectFit" />
+              重新编辑
+            </button>
+            <!-- <button @click="regenerate(item)">再次生成</button> -->
+            <button @click="saveImage(item)">
+              <image class="icon" :src="ASSETS.iconDownload" mode="aspectFit" />
+              保存
+            </button>
           </view>
         </view>
       </view>
@@ -44,7 +50,7 @@
       <view id="record-bottom-anchor" class="bottom-anchor"></view>
     </scroll-view>
 
-    <view class="composer-bar" @click="openCreateSheet">
+    <view class="composer-bar" @click.stop="openCreateSheet">
       <view class="upload-icon">
         <image :src="ASSETS.createUploadImage" mode="aspectFit" />
       </view>
@@ -57,6 +63,7 @@
     <CreateTaskSheet v-if="showCreateSheet" :preset-prompt="taskStore.prompt" :preset-ratio="taskStore.selectedRatio"
       :preset-model="taskStore.selectedModel" :reference-images="taskStore.referenceImages"
       @close="showCreateSheet = false" @login-required="showLoginSheet = true" @submitted="handleTaskSubmitted" />
+
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
 </template>
@@ -97,6 +104,7 @@ const getPageOption = (key: string) => {
 }
 
 const itemAnchor = (taskId: string) => `record-item-${taskId.replace(/[^A-Za-z0-9_-]/g, '-')}`
+
 
 const scrollToAnchor = (anchorId: string) => {
   scrollIntoView.value = ''
@@ -284,7 +292,7 @@ onUnmounted(() => {
 .record-list {
   display: flex;
   flex-direction: column;
-  gap: 58rpx;
+  gap: 72rpx;
   padding-bottom: 36rpx;
 }
 
@@ -300,11 +308,10 @@ onUnmounted(() => {
 .prompt {
   color: #fff;
   font-size: 26rpx;
-  line-height: 40rpx;
+  margin-bottom: 12rpx;
 }
 
 .meta-row {
-  margin-top: 12rpx;
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
@@ -335,10 +342,10 @@ onUnmounted(() => {
 .image-card {
   width: 100%;
   height: 200px;
-  margin-top: 12rpx;
+  margin-top: 24rpx;
   border-radius: 12rpx;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  // background: rgba(255, 255, 255, 0.08);
 
   image {
     height: 200px;
@@ -348,11 +355,12 @@ onUnmounted(() => {
 }
 
 .failed-card {
-  min-height: 360rpx;
-  padding: 34rpx;
+  width: 400rpx;
+  height: 400rpx;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-content: center;
   gap: 12rpx;
   color: rgba(255, 255, 255, 0.78);
   font-size: 28rpx;
@@ -370,6 +378,11 @@ onUnmounted(() => {
   display: flex;
   gap: 10rpx;
 
+  .icon {
+    width: 12px;
+    height: 12px;
+  }
+
   button {
     height: 50rpx;
     padding: 0 18rpx;
@@ -381,6 +394,9 @@ onUnmounted(() => {
     color: #fff;
     font-size: 22rpx;
     background: rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
   }
 }
 

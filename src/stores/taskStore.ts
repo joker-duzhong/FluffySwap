@@ -63,7 +63,10 @@ export const useTaskStore = defineStore("task", {
       this.selectedRatio = ratio;
     },
     setReferenceImages(images: ResourceResponse[]) {
-      this.referenceImages = images.filter((image) => Boolean(image?.id));
+      const nextImages = images.filter((image) => Boolean(image?.id));
+      const isSame = this.referenceImages.length === nextImages.length && this.referenceImages.every((image, index) => image.id === nextImages[index]?.id);
+      if (isSame) return;
+      this.referenceImages = nextImages;
     },
     applyPreset(prompt: string, ratio?: string, modelId?: string, referenceImages: ResourceResponse[] = []) {
       this.prompt = prompt;

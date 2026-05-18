@@ -1,5 +1,5 @@
 <template>
-  <view class="sheet-mask" @click="close">
+  <view class="sheet-mask" @click.stop.prevent="close">
     <view class="sheet" :style="sheetStyle" @click.stop>
       <view class="reference-row">
         <view v-for="(item, index) in referenceImages" :key="item.id" class="reference-thumb">
@@ -17,24 +17,31 @@
           @keyboardheightchange="handleKeyboardHeightChange" @blur="handlePromptBlur" />
       </view>
 
-      <view class="options">
-        <view class="option model-option" @tap.stop="showModelPicker">
-          <text class="model-icon">↔</text>
-          <text>{{ selectedModelName }}</text>
+      <view class="options options-wrap">
+        <div class="options-wrap">
+          <view class="option model-option" @tap.stop="showModelPicker">
+            <text>{{ selectedModelName }}</text>
+            <image class="icon" :src="ASSETS.iconSwitch" mode="aspectFit" />
+          </view>
+          <view class="option" @tap.stop="showRatioPicker">{{ selectedRatio }}</view>
+          <!-- <view class="option">1K</view> -->
+        </div>
+        <view class="options-wrap">
+          <view>
+            <image class="icon" :src="ASSETS.iconSpark" mode="aspectFit" />
+            {{ selectedCost || 2 }}
+          </view>
+          <button class="send-btn" :disabled="!canSubmit || submitting" :loading="submitting" @click="handleSubmit">
+            {{ submitting ? '提交中' : '生成' }}
+          </button>
         </view>
-        <view class="option" @tap.stop="showRatioPicker">{{ selectedRatio }}</view>
-        <view class="option">1K</view>
-        <view class="option">✦ {{ selectedCost || 2 }}</view>
-        <button class="send-btn" :disabled="!canSubmit || submitting" :loading="submitting" @click="handleSubmit">
-          {{ submitting ? '提交中' : '生成' }}
-        </button>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ASPECT_RATIOS } from '@/config'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi, type ResourceResponse, type TaskModelOption } from '@/services/aurakey'
@@ -86,11 +93,16 @@ const sheetStyle = computed(() => ({
 }))
 
 const close = () => {
+  console.log('close', submitting.value);
   if (!submitting.value) {
     keyboardHeight.value = 0
     emit('close')
   }
 }
+
+onUnmounted(() => {
+  console.log('CreateTaskSheet unmounted')
+})
 
 const hydratePreset = () => {
   hydratingDraft = true
@@ -342,10 +354,19 @@ onMounted(() => {
 }
 
 .options {
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+
+.options-wrap {
   display: flex;
   align-items: center;
-  gap: 10rpx;
-  margin-top: 20rpx;
+  gap: 16rpx;
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .option {
@@ -372,7 +393,6 @@ onMounted(() => {
 }
 
 .send-btn {
-  margin-left: auto;
   min-width: 92rpx;
   height: 58rpx;
   padding: 0 18rpx;
@@ -383,7 +403,8 @@ onMounted(() => {
   background: #5862ff;
 
   &[disabled] {
-    opacity: 0.5;
+    background: #B3B7FF;
+    color: #FFFFFFB2;
   }
 }
 </style>
