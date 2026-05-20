@@ -3,8 +3,8 @@
     <AppTopNav title="模板详情" back @back="goBack" />
 
     <PageSkeleton v-if="loading" variant="detail" :rows="1" />
-    <view v-else-if="detail" class="image-wrap">
-      <image class="poster-image" :src="detail.resource?.url" mode="widthFix" @click="togglePromptPanel" />
+    <view v-else-if="detail" class="image-wrap" @click="togglePromptPanel">
+      <image class="poster-image" :src="detail.resource?.url" mode="widthFix" />
     </view>
     <EmptyState v-else-if="!loading" title="模板不存在" description="请返回模板页重新选择。" />
 

@@ -54,7 +54,7 @@ defineEmits<{
     width: 30px;
     height: 1px;
     background: #fff;
-    margin: 10px auto;
+    margin: 0 auto 10px;
   }
 }
 
