@@ -18,7 +18,7 @@
     <button class="open-btn" :disabled="!selectedProduct || paying" :loading="paying" @click="handlePay">
       {{ paying ? '处理中' : payButtonText }}
     </button>
-    <text class="agreement">购买代表接受《会员协议》</text>
+    <text class="agreement" @click="showUserAgreement">购买即表示同意《用户协议》中的会员、灵感值及虚拟产品规则</text>
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
@@ -48,6 +48,7 @@ const rechargeSubtitle = computed(() => appStore.customJSON.recharge_subtitle)
 const payButtonText = computed(() => selectedProduct.value?.type === 'point_pack' ? '立即购买' : '开通会员')
 
 const goBack = () => uni.navigateBack()
+const showUserAgreement = () => uni.navigateTo({ url: '/pages/agreement/agreement?type=user' })
 
 const loadProducts = async () => {
   loading.value = true

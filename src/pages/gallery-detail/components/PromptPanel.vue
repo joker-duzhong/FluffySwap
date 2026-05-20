@@ -1,5 +1,6 @@
 <template>
   <view class="prompt-panel">
+    <div class="panel-top"></div>
     <div class="prompt-card">
       <view class="prompt-title">
         <text>提示词</text>
@@ -47,6 +48,14 @@ defineEmits<{
   background: rgba(31, 31, 33, 0.94);
   overflow: hidden;
   z-index: 20;
+
+  .panel-top {
+    text-align: center;
+    width: 30px;
+    height: 1px;
+    background: #fff;
+    margin: 10px auto;
+  }
 }
 
 .prompt-card {
@@ -85,6 +94,8 @@ defineEmits<{
 .prompt-text {
   display: block;
   min-height: 94rpx;
+  max-height: 30vh;
+  overflow: auto;
   padding: 20rpx 24rpx 0;
   color: rgba(255, 255, 255, 0.52);
   font-size: 24rpx;

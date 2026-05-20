@@ -225,7 +225,7 @@ const handleSubmit = async () => {
       prompt: prompt.value.trim(),
       model_name: selectedModel.value,
       aspect_ratio: selectedRatio.value,
-      is_public: true,
+      is_public: false,
       reference_images_ids: referenceImages.value.map((item) => item.id),
     })
     authStore.updateBalance(task.balance_after)

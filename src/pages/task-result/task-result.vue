@@ -32,13 +32,13 @@
       <EmptyState v-else title="暂无结果" description="输入提示词后开始生成。" />
     </scroll-view>
 
-    <GenerationComposer v-if="mode === 'create' || isSuccess" v-model:prompt="prompt" :model-name="selectedModelName"
+    <!-- <GenerationComposer v-if="mode === 'create' || isSuccess" v-model:prompt="prompt" :model-name="selectedModelName"
       :ratio="selectedRatio" :ratios="ratios" :can-send="canSend" :sending="submitting" :expanded="mode === 'create'"
       @send="handleGenerate" @focus="mode = 'create'" @upload="chooseImage" @model="showModelPicker"
       @ratio="showRatioPicker" />
     <WorkSharePoster v-if="showSharePoster && resultImage" :image-url="resultImage" :prompt="prompt" :task-id="taskId"
       @close="showSharePoster = false" />
-    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
+    <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" /> -->
   </view>
 </template>
 
@@ -126,7 +126,7 @@ const handleGenerate = async () => {
       prompt: prompt.value.trim(),
       model_name: selectedModel.value,
       aspect_ratio: selectedRatio.value,
-      is_public: true,
+      is_public: false,
       reference_images_ids: taskStore.referenceImages.map((item) => item.id),
     })
     authStore.updateBalance(task.balance_after)
@@ -332,10 +332,10 @@ onUnmounted(() => {
 }
 
 .failed {
+  padding: 20px;
   padding-top: 300rpx;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 18rpx;
 }
 

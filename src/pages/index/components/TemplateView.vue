@@ -25,8 +25,8 @@
       :lower-threshold="120" @scrolltolower="loadMore" :refresher-enabled="items.length > 0"
       :refresher-triggered="refreshing" @refresherrefresh="refresh">
       <PageSkeleton v-if="loading && items.length === 0" variant="grid" :rows="6" />
-      <MasonryGrid v-else-if="items.length > 0" :items="items" :content-inset="18" :item-height-offset="90"
-        @item-click="openTemplate(String($event.id))" />
+      <MasonryGrid v-else-if="items.length > 0" :items="items" :categories="categories" :content-inset="18"
+        :item-height-offset="90" @item-click="openTemplate(String($event.id))" />
       <view v-else-if="!loading" class="empty-wrap">
         <EmptyState title="暂无数据" description="快去发布一条作品吧" />
       </view>

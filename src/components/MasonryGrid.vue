@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ResourceResponse } from '../services/aurakey';
+import type { GalleryCategory, ResourceResponse } from '../services/aurakey';
 
 interface MasonryGridItem {
   id: string | number
@@ -39,6 +39,7 @@ type SlotItem = MasonryGridItem & Record<string, any>
 
 const props = withDefaults(defineProps<{
   items: SlotItem[]
+  categories: GalleryCategory[]
   columns?: number
   gap?: number
   paddingX?: number
