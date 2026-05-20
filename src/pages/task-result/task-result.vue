@@ -85,7 +85,7 @@ const MAX_REFERENCE_IMAGES = 9
 const isGenerating = computed(() => status.value === 'pending' || status.value === 'processing')
 const isSuccess = computed(() => status.value === 'success' || Boolean(resultImage.value))
 const isFailed = computed(() => status.value === 'failed')
-const pageTitle = computed(() => mode.value === 'create' ? '' : 'Title text')
+const pageTitle = computed(() => mode.value === 'create' ? '' : '任务详情')
 
 const goBack = () => uni.navigateBack()
 

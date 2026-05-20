@@ -171,12 +171,12 @@ const ruleSteps = [
 
 const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
 const nickname = computed(() => authStore.userProfile?.nickname || 'AuraKey 用户')
-const inviteRewardPoints = computed(() => appStore.inviteRewardPoints)
+const inviteRewardPoints = computed(() => appStore.systemConfig.invite_reward_points || 0)
 const inviteCode = computed(() => inviteInfo.value?.invite_code || 'AURAKEY')
 const qrValue = computed(() => buildInviteQrValue(inviteCode.value))
 const sharePath = computed(() => buildInvitePagePath(inviteCode.value))
 const shareQuery = computed(() => buildInviteTimelineQuery(inviteCode.value))
-const inviteBg = "https://zaiwen-abc.zaiwen.top/avatar/1778660893439-lj7sk7txgp.png"
+const inviteBg = useAppStore().customJSON.invite_poster_bg || "https://zaiwen-abc.zaiwen.top/avatar/1778660893439-lj7sk7txgp.png"
 
 const goBack = () => uni.navigateBack()
 

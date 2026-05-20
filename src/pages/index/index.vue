@@ -4,13 +4,8 @@
     <ProfileView v-show="currentTab === 'profile'" />
 
     <view class="custom-tabbar">
-      <view
-        v-for="tab in tabItems"
-        :key="tab.name"
-        class="tab-item"
-        :class="{ active: currentTab === tab.name }"
-        @click="switchTab(tab.name)"
-      >
+      <view v-for="tab in tabItems" :key="tab.name" class="tab-item" :class="{ active: currentTab === tab.name }"
+        @click="switchTab(tab.name)">
         <image class="tab-icon" :src="currentTab === tab.name ? tab.activeIcon : tab.icon" mode="aspectFit" />
         <text class="tab-text">{{ tab.label }}</text>
       </view>
@@ -42,11 +37,11 @@ const showLoginSheet = ref(false)
 const currentTab = computed(() => appStore.currentTab)
 const appLocked = computed(() => appStore.appInitializing || (!authStore.isLoggedIn && authStore.profileLoading))
 
-const SHARE_CONFIG = {
-  title: 'AuraKey AI 魔法师',
+const SHARE_CONFIG = () => ({
+  title: '灵钥(AuraKey) AI',
   path: '/pages/index/index',
-  imageUrl: ASSETS.logoWordmark,
-} as const
+  imageUrl: appStore.customJSON?.miniapp_share_cover || "",
+} as const)
 
 const tabItems: Array<{ name: TabName; label: string; icon: string; activeIcon: string }> = [
   {
@@ -106,6 +101,8 @@ onShow(() => {
   if (inviteStore.hasPendingInvite && !authStore.hasPhone) {
     showLoginSheet.value = true
   }
+
+  console.log('App Show', SHARE_CONFIG());
 })
 
 watch(
@@ -124,17 +121,18 @@ watch(
   { immediate: true },
 )
 
-onShareAppMessage(() => ({
-  title: SHARE_CONFIG.title,
-  path: SHARE_CONFIG.path,
-  imageUrl: SHARE_CONFIG.imageUrl,
-}))
+onShareAppMessage(() => {
+  return SHARE_CONFIG()
+})
 
-onShareTimeline(() => ({
-  title: SHARE_CONFIG.title,
-  query: '',
-  imageUrl: SHARE_CONFIG.imageUrl,
-}))
+onShareTimeline(() => {
+  const data = SHARE_CONFIG();
+  return {
+    title: data.title,
+    query: '',
+    imageUrl: data.imageUrl,
+  }
+})
 </script>
 
 <style scoped lang="scss">

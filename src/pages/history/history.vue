@@ -12,7 +12,8 @@
         <view v-for="item in items" :key="item.task_id" class="work-item" @click="handleItemClick(item)">
           <GeneratingTaskCard v-if="isPollingItem(item.task_id) || isGeneratingStatus(item.status)"
             :progress="item.progress || historyStore.pollingProgress" size="compact" />
-          <image v-else-if="item.resource?.thumb_url" :src="item.resource.thumb_url" mode="aspectFill" />
+          <image v-else-if="item.resource?.thumb_url" :src="item.resource.thumb_url" mode="aspectFill"
+            @click.stop="previewImage(item.resource.url)" />
           <view v-else class="placeholder">
             <text>{{ progressText(item) }}</text>
           </view>
@@ -100,13 +101,17 @@ const handleItemClick = (item: TaskHistoryItem) => {
   uni.navigateTo({ url: `/pages/task-result/task-result?taskId=${item.task_id}` })
 }
 
+const previewImage = (resultImage?: string) => {
+  if (resultImage) uni.previewImage({
+    current: resultImage,
+    urls: items.value.map((item) => item.resource?.url).filter((url): url is string => !!url),
+  })
+}
+
 const selectAll = () => {
   selectedIds.value = selectedIds.value.length === items.value.length ? [] : items.value.map((item) => item.task_id)
 }
 
-const downloadSelected = () => {
-  uni.showToast({ title: '请逐张打开后保存高清图', icon: 'none' })
-}
 
 const deleteSelected = () => {
   if (selectedIds.value.length === 0) return
@@ -207,7 +212,6 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   height: auto;
-  padding-bottom: calc(134rpx + env(safe-area-inset-bottom));
 }
 
 .grid {
@@ -215,6 +219,7 @@ onUnmounted(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 12rpx;
   padding: 0 34rpx 40rpx;
+  padding-bottom: calc(134rpx + env(safe-area-inset-bottom));
 }
 
 .work-item {

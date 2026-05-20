@@ -41,6 +41,8 @@ export interface AurakeySystemCustomConfig extends Record<string, unknown> {
   miniapp_check_version?: string;
   recharge_tag?: string;
   recharge_subtitle?: string;
+  invite_poster_bg?: string;
+  miniapp_share_cover?: string;
 }
 
 export interface AurakeySystemConfig {

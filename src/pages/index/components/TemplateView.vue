@@ -245,7 +245,8 @@ onMounted(async () => {
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;
-  background: radial-gradient(82.42% 100% at 50.22% 100%, #5EE2FF 0%, #3850FF 100%);
+  background: radial-gradient(82.42% 100% at 50.22% 100%, #5EE2FFa1 0%, #3850FFa1 100%);
+  backdrop-filter: blur(38rpx);
   border: 0.5px solid #0000004D;
   box-shadow: 0px 0px 4px 0px #00000033 0px 0px 10px 1px rgba(145, 196, 255, 0.8980392157) inset;
   z-index: 1001;

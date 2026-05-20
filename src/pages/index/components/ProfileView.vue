@@ -36,18 +36,17 @@
       <image :src="ASSETS.vipCardBg" mode="aspectFit" class="vip-bg" />
     </view>
 
-    <view class="works-section">
+    <view class="works-section" @click="goHistory">
       <view class="section-header">
         <text>我的作品</text>
-        <view class="more" @click="goHistory">
+        <view class="more">
           <text>更多</text>
           <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="chevron" />
         </view>
       </view>
       <PageSkeleton v-if="worksLoading" variant="grid" :rows="2" />
       <view v-else-if="works.length > 0" class="works-row">
-        <view v-for="item in works.slice(0, 3)" :key="item.task_id" class="work-preview"
-          @click="openWork(item.task_id)">
+        <view v-for="item in works.slice(0, 3)" :key="item.task_id" class="work-preview">
           <GeneratingTaskCard v-if="historyStore.isRunningItem(item.task_id) || isGeneratingStatus(item.status)"
             :progress="item.progress || historyStore.pollingProgress" size="compact" />
           <image v-else-if="item.resource?.thumb_url" :src="item.resource.thumb_url" mode="aspectFill" />
@@ -128,7 +127,7 @@ const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAva
 const nickname = computed(() => authStore.userProfile?.nickname || 'UserName_111')
 const phoneText = computed(() => authStore.userProfile?.phone || '13143214321')
 const works = computed(() => historyStore.items)
-const inviteRewardPoints = computed(() => appStore.inviteRewardPoints)
+const inviteRewardPoints = computed(() => appStore.systemConfig.invite_reward_points || 0)
 const vipTitle = computed(() => authStore.isVip ? authStore.membershipType : '会员中心·VIP')
 const vipDesc = computed(() => {
   if (!authStore.isVip) return '每月超多灵感值，限时优惠'
