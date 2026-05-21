@@ -7,14 +7,12 @@ const LOCAL_API_BASE_URL = "http://localhost:8000/api/v1";
 const PRODUCTION_API_BASE_URL = "https://api.lxyy.fun/api/v1";
 
 const getApiBaseUrl = () => {
-  // #ifdef MP-WEIXIN
-  try {
-    const accountInfo = uni.getAccountInfoSync();
-    return accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
-  } catch {
-    return PRODUCTION_API_BASE_URL;
-  }
-  // #endif
+  // try {
+  //   const accountInfo = uni.getAccountInfoSync();
+  //   return accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
+  // } catch {
+  //   return PRODUCTION_API_BASE_URL;
+  // }
 
   return PRODUCTION_API_BASE_URL;
 };

@@ -21,7 +21,7 @@ onLaunch(async (options) => {
   appStore.setAppInitializing(true);
   try {
     await loadSystemConfig();
-    authStore.loadFromStorage();
+    // authStore.loadFromStorage();
     inviteStore.captureInviteFromLaunchOptions(options);
     await silentLogin();
   } finally {

@@ -1,18 +1,19 @@
 <template>
   <view class="page" :class="{ locked: appLocked }">
-    <TemplateView v-show="currentTab === 'template'" @create="openCreatePage()" />
-    <ProfileView v-show="currentTab === 'profile'" />
-
+    <view v-if="appLocked" class="startup-mask">
+      <image :src="ASSETS.logoSymbol" mode="aspectFit" />
+      <text>正在加载</text>
+    </view>
+    <template v-else>
+      <TemplateView v-show="currentTab === 'template'" @create="openCreatePage()" />
+      <ProfileView v-show="currentTab === 'profile'" />
+    </template>
     <view class="custom-tabbar">
       <view v-for="tab in tabItems" :key="tab.name" class="tab-item" :class="{ active: currentTab === tab.name }"
         @click="switchTab(tab.name)">
         <image class="tab-icon" :src="currentTab === tab.name ? tab.activeIcon : tab.icon" mode="aspectFit" />
         <text class="tab-text">{{ tab.label }}</text>
       </view>
-    </view>
-    <view v-if="appLocked" class="startup-mask">
-      <image :src="ASSETS.logoSymbol" mode="aspectFit" />
-      <text>正在加载</text>
     </view>
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
   </view>
