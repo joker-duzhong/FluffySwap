@@ -1,24 +1,36 @@
 <template>
-  <view class="recharge-page">
-    <image class="hero-bg" :src="ASSETS.vipHero" mode="aspectFill" />
+  <view class="recharge-page" v-if="useAppStore().isReviewing">
+    <AppTopNav back @back="goBack" />
+    <view class="reviewing-placeholder">
+      <text class="reviewing-text">会员中心·VIP</text>
+      <text class="reviewing-subtitle">敬请期待</text>
+    </view>
+  </view>
+  <view class="recharge-page" v-else>
+    <image class="hero-bg" :src="ASSETS.vipHero" mode="widthFix" />
     <AppTopNav back @back="goBack" />
 
     <view class="hero-content">
-      <text class="title">会员中心·VIP</text>
-      <text v-if="rechargeTag" class="tag">{{ rechargeTag }}</text>
+      <view class="title-wrap">
+        <text class="title">会员中心·VIP</text>
+        <text v-if="rechargeTag" class="tag">{{ rechargeTag }}</text>
+      </view>
       <text v-if="rechargeSubtitle" class="desc">{{ rechargeSubtitle }}</text>
     </view>
 
     <PageSkeleton v-if="loading" class="plans-skeleton" variant="grid" :rows="3" />
-    <view v-else class="plans">
-      <RechargeProductCard v-for="product in products" :key="product.id" :product="product"
-        :active="selectedProduct?.id === product.id" @select="selectedProduct = product" />
-    </view>
+    <scroll-view v-else class="plans" scroll-x :show-scrollbar="false">
+      <view class="plans-inner">
+        <RechargeProductCard v-for="product in products" :key="product.id" :product="product"
+          :active="selectedProduct?.id === product.id" @select="selectedProduct = product" />
+      </view>
+    </scroll-view>
 
     <button class="open-btn" :disabled="!selectedProduct || paying" :loading="paying" @click="handlePay">
       {{ paying ? '处理中' : payButtonText }}
     </button>
-    <text class="agreement" @click="showUserAgreement">购买即表示同意《用户协议》中的会员、灵感值及虚拟产品规则</text>
+    <text class="agreement" @click="showUserAgreement">开通会员代表接受《会员协议》</text>
+
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="showLoginSheet = false" />
   </view>
 </template>
@@ -133,7 +145,8 @@ onUnmounted(() => {
 .recharge-page {
   position: relative;
   min-height: 100vh;
-  background: #12071b;
+  /* 整体背景修改 */
+  background: #170F1F;
   color: #fff;
   overflow: hidden;
 }
@@ -143,58 +156,86 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   width: 100%;
-  height: 536rpx;
 }
 
 .hero-content {
   position: relative;
   z-index: 1;
-  margin-top: 248rpx;
+  /* 增加边距，将标题往下挤在星图的正下方 */
+  margin-top: 420rpx;
   padding: 0 54rpx;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .title {
-  display: inline;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 40rpx;
+  display: inline-block;
+  font-size: 52rpx;
   font-weight: 800;
-  line-height: 54rpx;
+  line-height: 64rpx;
+  /* 字体颜色渐变实现 */
+  background: linear-gradient(90deg, #B7AADB 0%, #FCFBFD 33.65%, #C2ACF9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
 .tag {
-  display: inline-flex;
-  margin-left: 12rpx;
-  padding: 5rpx 10rpx 6rpx;
-  border-radius: 8rpx;
-  color: #3b2b00;
+  position: absolute;
+  left: 100%;
+  top: -4rpx;
+  margin-left: 14rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 100rpx;
+  color: #2a1e00;
   font-size: 22rpx;
   font-weight: 700;
-  line-height: 30rpx;
-  background: #fff39a;
+  line-height: 32rpx;
+  background: #EED781;
+  white-space: nowrap;
 }
 
 .desc {
   display: block;
-  margin-top: 22rpx;
-  color: rgba(255, 255, 255, 0.64);
+  margin-top: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 26rpx;
   line-height: 40rpx;
+  text-align: center;
 }
 
 .plans {
   position: relative;
   z-index: 1;
-  margin: 52rpx 46rpx 0;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.plans-inner {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 48rpx 46rpx 0;
+}
+
+.plans-skeleton {
+  position: relative;
+  z-index: 1;
+  margin: 60rpx 46rpx 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16rpx;
 }
 
 .plans-skeleton {
-  position: relative;
-  z-index: 1;
-  margin: 52rpx 46rpx 0;
   padding: 0;
 
   :deep(.skeleton-row) {
@@ -206,16 +247,16 @@ onUnmounted(() => {
   position: relative;
   z-index: 1;
   height: 104rpx;
-  margin: 52rpx 50rpx 0;
+  margin: 52rpx 46rpx 0;
   border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 104rpx;
   color: #111;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 800;
-  background: linear-gradient(90deg, #dcefff, #f4defd);
+  /* 按钮渐变背景修改 */
+  background: linear-gradient(90deg, #CAE1FF 0%, #FFFFFF 50%, #E9D8FF 100%);
 
   &::after {
     border: 0;
@@ -224,7 +265,7 @@ onUnmounted(() => {
 
 .agreement {
   display: block;
-  margin-top: 22rpx;
+  margin-top: 24rpx;
   color: rgba(255, 255, 255, 0.5);
   font-size: 24rpx;
   line-height: 34rpx;

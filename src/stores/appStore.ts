@@ -2,7 +2,7 @@
  * 应用全局状态管理
  */
 import { defineStore } from "pinia";
-import { DEFAULT_AURAKEY_SYSTEM_CONFIG, type AurakeySystemConfig } from "@/config";
+import { AppVersion, DEFAULT_AURAKEY_SYSTEM_CONFIG, type AurakeySystemConfig } from "@/config";
 
 export type TabName = "template" | "profile";
 
@@ -25,6 +25,7 @@ export const useAppStore = defineStore("app", {
   }),
   getters: {
     customJSON: (state) => state.systemConfig.custom,
+    isReviewing: (state) => state.systemConfig.custom.miniapp_check_version === AppVersion || false,
   },
   actions: {
     setTab(tab: TabName) {

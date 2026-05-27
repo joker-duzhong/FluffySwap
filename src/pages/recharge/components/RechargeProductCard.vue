@@ -3,16 +3,16 @@
     <view v-if="product.tag" class="recommend">{{ product.tag }}</view>
     <view class="points-bar">
       <image :src="ASSETS.iconSpark" mode="aspectFit" />
-      <text>{{ formatProductBenefit }}</text>
+      <text>{{ durationLabel }}</text>
     </view>
     <view class="plan-body">
       <text class="name">{{ product.name }}</text>
-      <text v-if="formatValidDays" class="valid-days">{{ formatValidDays }}</text>
       <view class="price-row">
         <text class="yen">¥</text>
-        <text class="price">{{ formatYuan(product.price) }}</text>
+        <text class="price">{{ formatMoney(product.price) }}</text>
       </view>
-      <text v-if="product.original_price" class="original">¥{{ formatYuan(product.original_price) }}</text>
+      <text v-if="product.original_price" class="original">¥{{ formatMoney(product.original_price) }}</text>
+      <view v-else class="original-placeholder" />
     </view>
   </view>
 </template>
@@ -20,7 +20,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ASSETS } from '@/config/assets'
-import { useAppStore } from '@/stores/appStore'
 import type { ProductItem } from '@/services/aurakey'
 
 const props = defineProps<{
@@ -32,104 +31,93 @@ defineEmits<{
   select: []
 }>()
 
-const appStore = useAppStore()
-
-const formatYuan = (fen: number) => {
-  const yuan = fen / 100
-  return Number.isInteger(yuan) ? yuan.toFixed(0) : yuan.toFixed(1)
+const formatMoney = (cents: number) => {
+  const value = cents / 100
+  if (Number.isInteger(value)) {
+    return String(value)
+  }
+  return value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
 }
 
-const getProductPoints = (product: ProductItem) => Number(product.point_amount || 0) + Number(product.bonus_amount || 0)
-
-const formatProductBenefit = computed(() => {
+const durationLabel = computed(() => {
   const product = props.product
-  const points = getProductPoints(product)
-  if (product.type === 'vip') {
-    const levelText = product.vip_level ? `Lv.${product.vip_level}` : ''
-    const typeText = product.vip_type || 'VIP'
-    return `${typeText}${levelText ? ` ${levelText}` : ''} · ${points}灵感值`
+
+  if (!product.valid_days) {
+    return `${product.point_amount}`
   }
-  return `${points}灵感值`
-})
 
-const formatValidDays = computed(() => {
-  const product = props.product
-  const days = product.valid_days ?? (
-    product.type === 'vip'
-      ? appStore.systemConfig.default_vip_valid_days
-      : appStore.systemConfig.default_point_pack_valid_days
-  )
-  if (!days) return product.type === 'point_pack' ? '长期有效' : ''
-  return `${days}天有效`
+  if (product.valid_days % 30 === 0) {
+    return `${product.point_amount}/${product.valid_days / 30}月`
+  }
+
+  return `${product.point_amount}/${product.valid_days}天`
 })
 </script>
 
 <style scoped lang="scss">
 .plan-card {
   position: relative;
-  border-radius: 24rpx;
-  border: 4rpx solid rgba(255, 255, 255, 0.16);
+  width: 232rpx;
+  border-radius: 32rpx;
+  border: 4rpx solid #433854;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: #2c2535;
+  background: #2d2638;
   box-sizing: border-box;
+  transition: all 0.2s;
+
+  &:active {
+    transform: scale(0.98);
+  }
 
   &.active {
-    border-color: #d8c0ff;
-    background: #261c31;
+    border-color: #e0caff;
 
     .points-bar {
-      color: #13071f;
-      background: #d4c0ff;
+      color: #1a1125;
+      background: #e0caff;
 
       image {
         filter: brightness(0);
       }
-    }
-
-    .price-row,
-    .yen {
-      color: #d7c2ff;
     }
   }
 }
 
 .recommend {
   position: absolute;
-  top: -38rpx;
-  right: -4rpx;
-  z-index: 2;
-  height: 40rpx;
-  padding: 0 12rpx;
-  border-radius: 8rpx 8rpx 8rpx 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #2f2600;
+  top: -32rpx;
+  right: -24rpx;
+  z-index: 20;
+  padding: 8rpx 16rpx;
+  border-radius: 22rpx 22rpx 8rpx 22rpx;
+  color: #332a00;
   font-size: 22rpx;
   font-weight: 700;
-  line-height: 40rpx;
-  background: #fff39a;
+  line-height: 1;
+  background: #fff199;
+  white-space: nowrap;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .points-bar {
   width: 100%;
-  height: 58rpx;
-  border-radius: 20rpx 20rpx 0 0;
+  padding: 16rpx 0;
+  border-radius: 26rpx 26rpx 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8rpx;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 24rpx;
-  line-height: 34rpx;
-  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 26rpx;
+  font-weight: 500;
+  line-height: 1;
+  background: #433854;
   box-sizing: border-box;
 
   image {
-    width: 22rpx;
-    height: 22rpx;
+    width: 26rpx;
+    height: 26rpx;
   }
 
   text {
@@ -141,53 +129,55 @@ const formatValidDays = computed(() => {
 }
 
 .plan-body {
+  flex: 1;
   width: 100%;
-  padding-top: 28rpx;
+  padding: 32rpx 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  border-radius: 0 0 26rpx 26rpx;
+  background: #2d2638;
   box-sizing: border-box;
 }
 
 .name {
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.valid-days {
-  margin-top: 6rpx;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 20rpx;
-  line-height: 28rpx;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 26rpx;
+  font-weight: 500;
 }
 
 .price-row {
-  margin-top: 10rpx;
+  margin-top: 24rpx;
   display: flex;
   align-items: baseline;
+  gap: 4rpx;
   color: #fff;
 }
 
 .yen {
-  margin-right: 8rpx;
   color: #fff;
   font-size: 28rpx;
-  font-weight: 800;
-  line-height: 38rpx;
+  font-weight: 500;
 }
 
 .price {
-  font-size: 50rpx;
-  font-weight: 800;
-  line-height: 58rpx;
+  font-size: 56rpx;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .original {
-  margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.32);
-  font-size: 22rpx;
-  line-height: 30rpx;
+  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 24rpx;
+  line-height: 1;
   text-decoration: line-through;
+}
+
+.original-placeholder {
+  height: 36rpx;
+  margin-top: 8rpx;
 }
 </style>

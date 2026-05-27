@@ -14,7 +14,6 @@ let profileRefreshPromise: Promise<void> | null = null;
 
 onLaunch(async (options) => {
   console.log("App Launch");
-
   // 配置 API 客户端
   configureClient();
 
