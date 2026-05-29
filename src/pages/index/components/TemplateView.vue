@@ -90,7 +90,8 @@ const loadTemplates = async (reset = false) => {
   loading.value = true
   try {
     const page = reset ? 1 : currentPage.value
-    const data = await aurakeyApi.gallery.list(page, pageSize)
+    const categoryId = activeCategoryId.value === 'all' ? undefined : activeCategoryId.value
+    const data = await aurakeyApi.gallery.list(page, pageSize, categoryId)
     const nextItems = data.items || []
     items.value = page === 1 ? nextItems : items.value.concat(nextItems)
     currentPage.value = page + 1

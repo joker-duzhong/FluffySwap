@@ -319,9 +319,15 @@ export const aurakeyApi = {
   },
 
   gallery: {
-    list: async (page: number, pageSize: number) => {
+    list: async (page: number, pageSize: number, categoryId?: string) => {
       const res = await client.GET("/aurakey/gallery/list", {
-        params: { query: { page, pageSize } },
+        params: {
+          query: {
+            page,
+            pageSize,
+            ...(categoryId && { category_id: categoryId })
+          }
+        },
       });
       return normalizeList<GalleryItem>(res.data);
     },

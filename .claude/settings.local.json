@@ -10,7 +10,8 @@
       "Bash(npx @hey-api/openapi-ts -i http://localhost:8000/api/v1/openapi.json -o src/lib/client --services.include \"^\\(用户授权|资源存储|小程序登录|AuraKey AI 绘画\\)\")",
       "Bash(npx @hey-api/openapi-ts -i http://localhost:8000/api/v1/openapi.json -o src/lib/client)",
       "Bash(npm run:*)",
-      "Bash(mv static/default-avatar-temp.png static/default-avatar.png)"
+      "Bash(mv static/default-avatar-temp.png static/default-avatar.png)",
+      "WebFetch(domain:localhost)"
     ]
   }
 }
