@@ -325,8 +325,8 @@ export const aurakeyApi = {
           query: {
             page,
             pageSize,
-            ...(categoryId && { category_id: categoryId })
-          }
+            ...(categoryId && { categoryId }),
+          },
         },
       });
       return normalizeList<GalleryItem>(res.data);
