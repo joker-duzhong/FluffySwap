@@ -2,7 +2,7 @@
  * 应用配置文件
  * 统一管理所有配置项
  */
-export const AppVersion = "1.0.1"; // 当前小程序版本号，需与微信小程序后台设置的版本号一致
+export const AppVersion = "1.0.2"; // 当前小程序版本号，需与微信小程序后台设置的版本号一致
 
 const LOCAL_API_BASE_URL = "http://localhost:8000/api/v1";
 const PRODUCTION_API_BASE_URL = "https://api.lxyy.fun/api/v1";
