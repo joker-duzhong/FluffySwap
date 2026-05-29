@@ -68,7 +68,7 @@
         </view>
         <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
-      <!-- <view class="menu-item" @click="goInvite">
+      <view class="menu-item" @click="goInvite">
         <view class="menu-left">
           <image :src="ASSETS.iconGift" mode="aspectFit" />
           <text>邀请好友</text>
@@ -78,7 +78,7 @@
           <text class="highlight">{{ inviteRewardPoints }}灵感</text>
           <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
         </view>
-      </view> -->
+      </view>
       <view class="menu-item" @click="showAgreement('user')">
         <view class="menu-left">
           <image :src="ASSETS.iconBook" mode="aspectFit" />

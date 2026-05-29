@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { aurakeyApi, type BindInviteResponse } from '@/services/aurakey'
 import { useAuthStore } from './authStore'
-import { extractInviteCodeFromLaunchOptions, extractInviteCodeFromQuery, normalizeInviteCode } from '@/utils/invite'
+import { normalizeInviteCode } from '@/utils/invite'
 
 export const useInviteStore = defineStore('invite', {
   state: () => ({
@@ -23,16 +23,8 @@ export const useInviteStore = defineStore('invite', {
       this.pendingInviteCode = normalizedInviteCode
       return true
     },
-    captureInviteFromQuery(query?: Record<string, unknown> | null) {
-      return this.setPendingInviteCode(extractInviteCodeFromQuery(query))
-    },
-    captureInviteFromLaunchOptions(
-      options?: {
-        query?: Record<string, unknown>
-        scene?: string | number
-      } | null,
-    ) {
-      return this.setPendingInviteCode(extractInviteCodeFromLaunchOptions(options))
+    receiveLoginInvite(inviteCode: unknown) {
+      return this.setPendingInviteCode(inviteCode)
     },
     clearPendingInviteCode() {
       this.pendingInviteCode = ''

@@ -1,5 +1,6 @@
-const INVITE_QUERY_KEY = 'invite_code'
-const INDEX_PAGE_PATH = '/pages/index/index'
+import { ENTRY_QUERY_KEYS, LOGIN_INVITE_ENTRY_TYPE, MINI_PROGRAM_ENTRY_PAGE_PATH } from '@/utils/miniProgramEntryShared'
+
+const INVITE_REDIRECT_BASE_URL = 'https://tool.lxyy.fun/miniapp/h5/aurakey/redirect'
 
 const toPlainString = (value: unknown) => {
   if (typeof value === 'string') return value
@@ -12,49 +13,21 @@ export const normalizeInviteCode = (value: unknown) => {
   return normalized ? normalized.slice(0, 64) : ''
 }
 
-export const extractInviteCodeFromQuery = (query?: Record<string, unknown> | null) => {
-  if (!query) return ''
-  return normalizeInviteCode(query[INVITE_QUERY_KEY])
-}
-
-export const extractInviteCodeFromScene = (scene?: string | null) => {
-  const rawScene = normalizeInviteCode(scene)
-  if (!rawScene) return ''
-
-  try {
-    const decodedScene = decodeURIComponent(rawScene)
-    const sceneParts = decodedScene.split('&')
-    const invitePair = sceneParts.find((item) => item.startsWith(`${INVITE_QUERY_KEY}=`))
-    if (invitePair) {
-      return normalizeInviteCode(invitePair.slice(INVITE_QUERY_KEY.length + 1))
-    }
-    return normalizeInviteCode(decodedScene)
-  } catch {
-    return rawScene
-  }
-}
-
-export const extractInviteCodeFromLaunchOptions = (
-  options?: {
-    query?: Record<string, unknown>
-    scene?: string | number
-  } | null,
-) => {
-  const inviteCodeFromQuery = extractInviteCodeFromQuery(options?.query)
-  if (inviteCodeFromQuery) return inviteCodeFromQuery
-
-  return extractInviteCodeFromScene(options?.query?.scene ? toPlainString(options.query.scene) : toPlainString(options?.scene))
-}
-
 export const buildInvitePagePath = (inviteCode: string) => {
   const normalized = normalizeInviteCode(inviteCode)
-  if (!normalized) return INDEX_PAGE_PATH
-  return `${INDEX_PAGE_PATH}?${INVITE_QUERY_KEY}=${encodeURIComponent(normalized)}`
+  if (!normalized) return MINI_PROGRAM_ENTRY_PAGE_PATH
+  return `${MINI_PROGRAM_ENTRY_PAGE_PATH}?${ENTRY_QUERY_KEYS.type}=${LOGIN_INVITE_ENTRY_TYPE}&${ENTRY_QUERY_KEYS.inviteCode}=${encodeURIComponent(normalized)}`
 }
 
 export const buildInviteTimelineQuery = (inviteCode: string) => {
   const normalized = normalizeInviteCode(inviteCode)
-  return normalized ? `${INVITE_QUERY_KEY}=${encodeURIComponent(normalized)}` : ''
+  return normalized ? `${ENTRY_QUERY_KEYS.type}=${LOGIN_INVITE_ENTRY_TYPE}&${ENTRY_QUERY_KEYS.inviteCode}=${encodeURIComponent(normalized)}` : ''
 }
 
-export const buildInviteQrValue = (inviteCode: string) => buildInvitePagePath(inviteCode)
+export const buildInviteRedirectUrl = (inviteCode: string) => {
+  const normalized = normalizeInviteCode(inviteCode)
+  if (!normalized) return INVITE_REDIRECT_BASE_URL
+  return `${INVITE_REDIRECT_BASE_URL}?${ENTRY_QUERY_KEYS.type}=${LOGIN_INVITE_ENTRY_TYPE}&${ENTRY_QUERY_KEYS.inviteCode}=${encodeURIComponent(normalized)}`
+}
+
+export const buildInviteQrValue = (inviteCode: string) => buildInviteRedirectUrl(inviteCode)

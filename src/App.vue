@@ -3,6 +3,7 @@ import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
 import { useInviteStore } from "@/stores/inviteStore";
+import { handleMiniProgramEntryLaunchOptions } from "@/utils/miniProgramEntry";
 import { configureClient } from "@/services/clientConfig";
 import { aurakeyApi } from "@/services/aurakey";
 import { WECHAT_CONFIG } from "@/config";
@@ -21,7 +22,7 @@ onLaunch(async (options) => {
   try {
     await loadSystemConfig();
     // authStore.loadFromStorage();
-    inviteStore.captureInviteFromLaunchOptions(options);
+    handleMiniProgramEntryLaunchOptions(options);
     await silentLogin();
   } finally {
     appStore.setAppInitializing(false);
@@ -30,7 +31,7 @@ onLaunch(async (options) => {
 
 onShow((options) => {
   console.log("App Show");
-  inviteStore.captureInviteFromLaunchOptions(options);
+  handleMiniProgramEntryLaunchOptions(options);
 });
 
 onHide(() => {

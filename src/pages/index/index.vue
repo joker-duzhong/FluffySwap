@@ -26,6 +26,7 @@ import { useAppStore, type TabName } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useInviteStore } from '@/stores/inviteStore'
 import { ASSETS } from '@/config/assets'
+import { handleMiniProgramEntryQuery } from '@/utils/miniProgramEntry'
 import LoginSheet from './components/LoginSheet.vue'
 import TemplateView from './components/TemplateView.vue'
 import ProfileView from './components/ProfileView.vue'
@@ -70,8 +71,8 @@ const openCreatePage = () => {
 }
 
 const syncInviteEntry = (query?: Record<string, unknown>) => {
-  const hasInvite = inviteStore.captureInviteFromQuery(query)
-  if (hasInvite && !authStore.hasPhone) {
+  const handledEntry = handleMiniProgramEntryQuery(query)
+  if (handledEntry && !authStore.hasPhone) {
     showLoginSheet.value = true
   }
 }

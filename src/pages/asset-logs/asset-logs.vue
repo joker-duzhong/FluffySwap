@@ -11,8 +11,8 @@
     <scroll-view class="log-scroll" scroll-y @scrolltolower="loadMore">
       <PageSkeleton v-if="loading && logs.length === 0" :rows="5" />
       <view v-for="item in logs" v-else :key="item.id" class="log-item">
-        <view>
-          <text class="desc">{{ item.description || getLogText(item.type) }}</text>
+        <view class="log-main">
+          <view class="desc">{{ item.description || getLogText(item.type) }}</view>
           <text class="date">{{ formatDate(item.created_at || item.createdAt) }}</text>
         </view>
         <text class="amount" :class="{ plus: item.amount > 0 }">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</text>
@@ -165,23 +165,38 @@ onUnmounted(() => {
   justify-content: space-between;
 }
 
+.log-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: 24rpx;
+  overflow: hidden;
+}
+
 .desc,
 .date {
   display: block;
 }
 
 .desc {
+  width: 100%;
+  height: 40rpx;
+  line-height: 40rpx;
   color: #fff;
   font-size: 28rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .date {
   margin-top: 12rpx;
   color: #FFFFFF66;
   font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .amount {
+  flex-shrink: 0;
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;

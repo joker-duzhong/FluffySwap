@@ -191,6 +191,7 @@ const loadInviteInfo = async () => {
   } catch (error: any) {
     uni.showToast({ title: error.message || '邀请信息加载失败', icon: 'none' })
   } finally {
+    console.log('loadInviteInfo finally', qrValue.value);
     loading.value = false
   }
 }
