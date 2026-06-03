@@ -4,7 +4,7 @@
       :style="getColumnStyle(columnIndex)">
       <view v-for="(entry, entryIndex) in column.items" :key="entry.item.id" class="masonry-cell"
         :style="getCellStyle(entryIndex)" @click="emit('item-click', entry.item)">
-        <text class="card-title">{{ entry.item.prompt || '模板' }}</text>
+        <text class="card-title">{{ entry.item?.show_title || entry.item.prompt || '模板' }}</text>
         <image class="card-image" :style="getImageStyle(entry.imageHeight)" :src="getImageSource(entry.item)"
           mode="aspectFill" />
       </view>
@@ -115,7 +115,6 @@ const masonryColumns = computed<MasonryGridColumn<SlotItem>[]>(() => {
     targetColumn.items.push({ item, index, imageHeight, itemHeight })
     targetColumn.height += itemHeight + props.gap
   })
-
   return columns
 })
 

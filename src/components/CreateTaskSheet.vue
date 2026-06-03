@@ -12,7 +12,7 @@
       </view>
 
       <view class="input-wrap">
-        <textarea v-model="prompt" class="prompt-input" :maxlength="1000" :adjust-position="false"
+        <textarea v-model="prompt" class="prompt-input" :adjust-position="false"
           :show-confirm-bar="false" auto-height :focus="autoFocus" placeholder="请输入提示词"
           @keyboardheightchange="handleKeyboardHeightChange" @blur="handlePromptBlur" />
       </view>

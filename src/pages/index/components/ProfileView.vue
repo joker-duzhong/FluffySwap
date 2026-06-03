@@ -3,7 +3,7 @@
     <view class="top-glow"></view>
     <AppTopNav>
       <template #left>
-        <view class="balance-pill" @click="goRecharge">
+        <view class="balance-pill" @click="goRecharge" v-if="!useAppStore().isReviewing">
           <image :src="ASSETS.iconSpark" mode="aspectFit" />
           <text>{{ balance }}</text>
           <view class="divider"></view>
@@ -27,7 +27,7 @@
       </view>
     </view>
 
-    <view class="vip-card" @click="goRecharge">
+    <view class="vip-card" @click="goRecharge" v-if="!useAppStore().isReviewing">
       <view>
         <text class="vip-title">{{ vipTitle }}</text>
         <text class="vip-desc">{{ vipDesc }}</text>
