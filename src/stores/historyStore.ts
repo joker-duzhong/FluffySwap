@@ -49,6 +49,7 @@ export const useHistoryStore = defineStore("history", {
     pollingTaskId: "",
     pollingProgress: 0,
     polling: false,
+    requestVersion: 0,
   }),
   getters: {
     hasRunningTask: (state) => state.items.some((item) => isRunningStatus(item.status)),
@@ -79,23 +80,25 @@ export const useHistoryStore = defineStore("history", {
       this.syncPollingState();
     },
     async deleteItems(taskIds: string[]) {
+      const version = this.requestVersion;
       for (const taskId of taskIds) {
         await aurakeyApi.user.deleteHistory(taskId);
       }
-      this.removeItems(taskIds);
+      if (version === this.requestVersion) this.removeItems(taskIds);
     },
     async loadHistory(options: LoadHistoryOptions = {}) {
       const reset = Boolean(options.reset);
       if (this.loading || (!this.hasMore && !reset)) return;
 
       if (!options.silent) this.loading = true;
+      const version = this.requestVersion;
 
       try {
         const page = reset ? 1 : this.currentPage;
         const data = await aurakeyApi.user.history(page, this.pageSize);
-        this.applyHistoryPage(data, page);
+        if (version === this.requestVersion) this.applyHistoryPage(data, page);
       } finally {
-        if (!options.silent) this.loading = false;
+        if (version === this.requestVersion && !options.silent) this.loading = false;
       }
     },
     trackSubmittedTask(taskId: string, fallback: Partial<TaskHistoryItem> = {}) {
@@ -135,11 +138,12 @@ export const useHistoryStore = defineStore("history", {
       if (this.polling) return;
 
       this.polling = true;
+      const version = this.requestVersion;
       try {
         const data = await aurakeyApi.user.history(1, this.pageSize);
-        this.applyHistoryPage(data, 1);
+        if (version === this.requestVersion) this.applyHistoryPage(data, 1);
       } finally {
-        this.polling = false;
+        if (version === this.requestVersion) this.polling = false;
       }
     },
     applyHistoryPage(data: PaginatedData<TaskHistoryItem>, page: number) {
@@ -189,6 +193,10 @@ export const useHistoryStore = defineStore("history", {
       this.stopListPolling();
     },
     reset() {
+      this.requestVersion += 1;
+      this.loading = false;
+      this.polling = false;
+      notifiedTaskIds.clear();
       this.items = [];
       this.currentPage = 1;
       this.hasMore = true;

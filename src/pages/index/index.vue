@@ -82,12 +82,10 @@ const handleLoggedIn = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 
 onMounted(() => {
-  authStore.loadFromStorage()
   uni.$on('auth:login-required', handleLoginRequired)
 })
 
@@ -112,7 +110,6 @@ watch(
   ([hasPendingInvite, hasPhone, profileLoading, appInitializing]) => {
     if (hasPhone) {
       showLoginSheet.value = false
-      inviteStore.discardPendingInviteForBoundUser()
       return
     }
 

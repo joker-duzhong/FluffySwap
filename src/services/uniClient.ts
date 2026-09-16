@@ -3,7 +3,11 @@
  * 用于替代生成的 SDK 客户端，适配微信小程序环境
  */
 
-interface RequestConfig {
+import { ApiError, retryAfterSeconds } from './apiError'
+
+export interface RequestConfig {
+  retried?: boolean
+  sessionEpoch?: number
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD'
   data?: any
@@ -27,8 +31,8 @@ class UniClient {
   private defaultHeaders: Record<string, string> = {}
   private requestInterceptor?: (config: RequestConfig) => RequestConfig
   private responseInterceptor?: {
-    onFulfilled?: (response: any) => any
-    onRejected?: (error: any) => any
+    onFulfilled?: (response: any, config: RequestConfig) => any
+    onRejected?: (error: ApiError, config: RequestConfig) => any
   }
 
   setConfig(config: ClientConfig) {
@@ -48,8 +52,8 @@ class UniClient {
     },
     response: {
       use: (
-        onFulfilled?: (response: any) => any,
-        onRejected?: (error: any) => any
+        onFulfilled?: (response: any, config: RequestConfig) => any,
+        onRejected?: (error: ApiError, config: RequestConfig) => any
       ) => {
         this.responseInterceptor = { onFulfilled, onRejected }
       },
@@ -67,73 +71,36 @@ class UniClient {
     return `${fullUrl}?${queryString}`
   }
 
-  private async request<T = any>(config: RequestConfig): Promise<Response<T>> {
+  async request<T = any>(config: RequestConfig): Promise<Response<T>> {
+    if (this.requestInterceptor) config = this.requestInterceptor(config)
+    const url = this.buildUrl(config.url, config.params)
+    const headers = { ...this.defaultHeaders, ...config.headers }
     try {
-      // 应用请求拦截器
-      if (this.requestInterceptor) {
-        config = this.requestInterceptor(config)
-      }
-
-      const url = this.buildUrl(config.url, config.params)
-      const headers = { ...this.defaultHeaders, ...config.headers }
-
-      return new Promise((resolve, reject) => {
+      const res = await new Promise<UniApp.RequestSuccessCallbackResult>((resolve, reject) => {
         uni.request({
           url,
           method: config.method || 'GET',
           data: config.data,
           header: headers,
           timeout: 60000,
-          success: (res) => {
-            if (res.statusCode >= 400) {
-              const error = {
-                response: res,
-                message: `HTTP ${res.statusCode}`,
-              }
-              if (this.responseInterceptor?.onRejected) {
-                try {
-                  reject(this.responseInterceptor.onRejected(error))
-                } catch (interceptorError) {
-                  reject(interceptorError)
-                }
-              } else {
-                reject(error)
-              }
-              return
-            }
-
-            const response = {
-              data: res.data as T,
-              response: res,
-            }
-
-            // 应用响应拦截器
-            if (this.responseInterceptor?.onFulfilled) {
-              try {
-                const interceptedResponse = this.responseInterceptor.onFulfilled(response)
-                resolve(interceptedResponse as Response<T>)
-              } catch (error) {
-                if (this.responseInterceptor?.onRejected) {
-                  this.responseInterceptor.onRejected(error)
-                }
-                reject(error)
-              }
-            } else {
-              resolve(response)
-            }
-          },
-          fail: (error) => {
-            if (this.responseInterceptor?.onRejected) {
-              const result = this.responseInterceptor.onRejected(error)
-              reject(result)
-            } else {
-              reject(error)
-            }
-          },
+          success: resolve,
+          fail: () => reject(new ApiError('网络连接失败，请检查网络后重试')),
         })
       })
+      const payload = res.data as { code?: number; message?: string; detail?: unknown } | null
+      const status = res.statusCode >= 400 ? res.statusCode : payload?.code
+      if (typeof status === 'number' && status !== 200 && status !== 201 && status !== 204) {
+        const retryHeader = Object.entries(res.header || {}).find(([key]) => key.toLowerCase() === 'retry-after')?.[1]
+        throw new ApiError(payload?.message || (typeof payload?.detail === 'string' ? payload.detail : '请求失败，请重试'), status, retryAfterSeconds(retryHeader))
+      }
+      const response = { data: res.data as T, response: res }
+      return this.responseInterceptor?.onFulfilled
+        ? await this.responseInterceptor.onFulfilled(response, config)
+        : response
     } catch (error) {
-      return { error }
+      const normalized = error instanceof ApiError ? error : new ApiError('请求失败，请重试')
+      if (this.responseInterceptor?.onRejected) return await this.responseInterceptor.onRejected(normalized, config)
+      throw normalized
     }
   }
 

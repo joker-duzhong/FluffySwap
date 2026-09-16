@@ -82,10 +82,7 @@ const save = async () => {
   try {
     const avatar = await uploadAvatarIfNeeded()
     const profile = await aurakeyApi.auth.updateMe({ nickname, avatar })
-    authStore.updateProfilePatch({
-      nickname: profile.nickname || nickname,
-      avatar: profile.avatar || avatar,
-    })
+    authStore.updatePlatformUser(profile)
     uni.showToast({ title: '已保存', icon: 'success' })
     emit('saved')
   } catch (error: any) {

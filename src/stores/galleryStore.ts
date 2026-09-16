@@ -59,6 +59,9 @@ export const useGalleryStore = defineStore("gallery", {
       this.items = [];
       this.currentPage = 1;
       this.hasMore = true;
+      this.total = 0;
+      this.loading = false;
+      this.selectedItem = null;
     },
   },
 });

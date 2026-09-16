@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ASPECT_RATIOS } from '@/config'
+import { ASPECT_RATIOS, MAX_REFERENCE_IMAGES } from '@/config'
 import { ASSETS } from '@/config/assets'
 import { aurakeyApi, type ResourceResponse, type TaskModelOption } from '@/services/aurakey'
 import { useAuthStore } from '@/stores/authStore'
@@ -85,7 +85,6 @@ const selectedRatio = ref('1:1')
 const submitting = ref(false)
 const referenceImages = ref<ResourceResponse[]>([])
 const keyboardHeight = ref(0)
-const MAX_REFERENCE_IMAGES = 9
 let hydratingDraft = false
 
 const selectedModelInfo = computed(() => options.value.find((item) => item.model_id === selectedModel.value))
@@ -117,7 +116,7 @@ const hydratePreset = () => {
   selectedRatio.value = props.presetRatio || taskStore.selectedRatio || ratios.value[0] || '1:1'
   selectedModel.value = props.presetModel || taskStore.selectedModel || options.value[0]?.model_id || ''
   const presetImages = props.referenceImages.length > 0 ? props.referenceImages : props.referenceImage ? [props.referenceImage] : taskStore.referenceImages
-  referenceImages.value = presetImages.filter((image): image is ResourceResponse => Boolean(image?.id))
+  referenceImages.value = presetImages.filter((image): image is ResourceResponse => Boolean(image?.id)).slice(0, MAX_REFERENCE_IMAGES)
   hydratingDraft = false
 }
 

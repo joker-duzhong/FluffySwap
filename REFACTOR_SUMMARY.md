@@ -224,7 +224,7 @@ npm run dev:mp-weixin
 npm run build:mp-weixin
 
 # 重新生成 API SDK（当后端接口更新时）
-npx @hey-api/openapi-ts -i http://localhost:8000/api/v1/openapi.json -o src/lib/client
+npx @hey-api/openapi-ts -i http://192.168.31.93:8000/api/v1/openapi.json -o src/lib/client
 ```
 
 ## 注意事项

@@ -35,6 +35,9 @@
           <text>{{ loading ? '加载中...' : '邀请好友' }}</text>
         </button>
         <text class="reward-note">*被邀请者必须为新注册用户</text>
+        <button v-if="authStore.isLoggedIn && inviteStore.hasPendingInvite" class="invite-button" :disabled="inviteStore.bindingInvite" @click="retryInvite">
+          {{ inviteStore.bindingInvite ? '领取中' : '重试领取邀请奖励' }}
+        </button>
       </view>
 
       <view class="rule-card">
@@ -109,12 +112,13 @@
 
 <script setup lang="ts">
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import QrCodeGrid from '@/components/QrCodeGrid.vue'
 import { ASSETS } from '@/config/assets'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useInviteStore } from '@/stores/inviteStore'
 import LoginSheet from '@/pages/index/components/LoginSheet.vue'
 import { aurakeyApi, type InviteInfo } from '@/services/aurakey'
 import { buildInvitePagePath, buildInviteQrValue, buildInviteTimelineQuery } from '@/utils/invite'
@@ -140,6 +144,7 @@ const QR_SIZE = 272
 const POSTER_RADIUS = 32
 
 const authStore = useAuthStore()
+const inviteStore = useInviteStore()
 const appStore = useAppStore()
 const inviteInfo = ref<InviteInfo | null>(null)
 const showLoginSheet = ref(false)
@@ -150,6 +155,21 @@ const posterCloseTop = ref(48)
 const posterCloseRight = ref(42)
 const previewQrSize = QR_SIZE
 const previewQrPadding = QR_PADDING
+
+watch(() => authStore.sessionEpoch, () => {
+  inviteInfo.value = null
+  showPosterSheet.value = false
+}, { flush: 'sync' })
+
+const retryInvite = async () => {
+  try {
+    await inviteStore.bindPendingInvite()
+    await authStore.refreshProfile()
+    await loadInviteInfo()
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '领取失败，请重试', icon: 'none' })
+  }
+}
 
 const ruleSteps = [
   {
@@ -287,7 +307,6 @@ const handleLoggedIn = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 

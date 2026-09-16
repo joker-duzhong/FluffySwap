@@ -4,7 +4,7 @@
  */
 export const AppVersion = "1.0.2"; // 当前小程序版本号，需与微信小程序后台设置的版本号一致
 
-const LOCAL_API_BASE_URL = "http://localhost:8000/api/v1";
+const LOCAL_API_BASE_URL = "http://192.168.31.93:8000/api/v1";
 const PRODUCTION_API_BASE_URL = "https://api.lxyy.fun/api/v1";
 
 const getApiBaseUrl = () => {
@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
   //   return PRODUCTION_API_BASE_URL;
   // }
 
-  return PRODUCTION_API_BASE_URL;
+  return LOCAL_API_BASE_URL;
 };
 
 // API 配置
@@ -29,9 +29,15 @@ export const WECHAT_CONFIG = {
   APPID: "wxb26e7039ef603dca",
 };
 
+export const AUTH_SCOPE = "hope_aurakey";
+export const AUTH_SESSION_VERSION = 2;
+export const MAX_REFERENCE_IMAGES = 1;
+
 // 存储 key 配置
 export const STORAGE_KEYS = {
   TOKEN: "aurakey_token",
+  REFRESH_TOKEN: "aurakey_refresh_token",
+  SESSION: "aurakey_session",
   USER_INFO: "aurakey_user_info",
   LAST_PROMPT: "aurakey_last_prompt",
 };

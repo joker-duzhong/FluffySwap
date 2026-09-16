@@ -3,6 +3,7 @@
  */
 import type { ResourceResponse } from "@/services/aurakey";
 import { defineStore } from "pinia";
+import { MAX_REFERENCE_IMAGES } from '@/config';
 
 export interface TaskOptions {
   models: Array<{
@@ -63,7 +64,7 @@ export const useTaskStore = defineStore("task", {
       this.selectedRatio = ratio;
     },
     setReferenceImages(images: ResourceResponse[]) {
-      const nextImages = images.filter((image) => Boolean(image?.id));
+      const nextImages = images.filter((image) => Boolean(image?.id)).slice(0, MAX_REFERENCE_IMAGES);
       const isSame = this.referenceImages.length === nextImages.length && this.referenceImages.every((image, index) => image.id === nextImages[index]?.id);
       if (isSame) return;
       this.referenceImages = nextImages;
@@ -72,7 +73,7 @@ export const useTaskStore = defineStore("task", {
       this.prompt = prompt;
       if (ratio) this.selectedRatio = ratio;
       if (modelId) this.selectedModel = modelId;
-      this.referenceImages = referenceImages.filter((image) => Boolean(image?.id));
+      this.setReferenceImages(referenceImages);
     },
     clearDraft() {
       this.prompt = "";

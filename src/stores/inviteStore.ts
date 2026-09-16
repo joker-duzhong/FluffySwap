@@ -31,12 +31,7 @@ export const useInviteStore = defineStore('invite', {
     },
     clearBoundInviteCode() {
       this.boundInviteCode = ''
-    },
-    discardPendingInviteForBoundUser() {
-      const authStore = useAuthStore()
-      if (authStore.hasPhone) {
-        this.pendingInviteCode = ''
-      }
+      this.bindingInvite = false
     },
     async bindPendingInvite() {
       const inviteCode = this.pendingInviteCode
@@ -47,13 +42,15 @@ export const useInviteStore = defineStore('invite', {
       }
 
       this.bindingInvite = true
+      const epoch = authStore.sessionEpoch
       try {
         const result = await aurakeyApi.user.bindInvite(inviteCode)
+        if (epoch !== authStore.sessionEpoch) return null
         this.boundInviteCode = inviteCode
         this.pendingInviteCode = ''
         return result as BindInviteResponse
       } finally {
-        this.bindingInvite = false
+        if (epoch === authStore.sessionEpoch) this.bindingInvite = false
       }
     },
   },

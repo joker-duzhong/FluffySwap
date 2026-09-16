@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
@@ -58,6 +58,11 @@ const taskStore = useTaskStore()
 const selecting = ref(false)
 const selectedIds = ref<string[]>([])
 const showLoginSheet = ref(false)
+
+watch(() => authStore.sessionEpoch, () => {
+  selectedIds.value = []
+  selecting.value = false
+}, { flush: 'sync' })
 
 const items = computed(() => historyStore.items)
 const total = computed(() => historyStore.total)
@@ -150,7 +155,6 @@ const progressText = (item: TaskHistoryItem) => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 

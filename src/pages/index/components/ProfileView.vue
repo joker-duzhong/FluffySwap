@@ -86,13 +86,13 @@
         </view>
         <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
       </view>
-      <!-- <view class="menu-item" @click="logout">
+      <view v-if="isLoggedIn" class="menu-item" @click="logout">
         <view class="menu-left">
           <image :src="ASSETS.iconLogout" mode="aspectFit" />
           <text>退出登录</text>
         </view>
         <image :src="ASSETS.iconChevronRight" mode="aspectFit" class="arrow" />
-      </view> -->
+      </view>
     </view>
 
     <LoginSheet v-if="showLoginSheet" @close="showLoginSheet = false" @logged-in="handleLoggedIn" />
@@ -124,8 +124,8 @@ const worksLoading = ref(false)
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const balance = computed(() => authStore.balance)
 const avatar = computed(() => authStore.userProfile?.avatar || ASSETS.defaultAvatar)
-const nickname = computed(() => authStore.userProfile?.nickname || 'UserName_111')
-const phoneText = computed(() => authStore.userProfile?.phone || '13143214321')
+const nickname = computed(() => authStore.userProfile?.nickname || 'AuraKey 用户')
+const phoneText = computed(() => authStore.userProfile?.phone || '')
 const works = computed(() => historyStore.items)
 const inviteRewardPoints = computed(() => appStore.systemConfig.invite_reward_points || 0)
 const vipTitle = computed(() => authStore.isVip ? authStore.membershipType : '会员中心·VIP')
@@ -181,7 +181,6 @@ const logout = () => {
     return
   }
   authStore.clearAuth()
-  historyStore.reset()
   uni.showToast({ title: '已退出登录', icon: 'none' })
 }
 
@@ -196,9 +195,12 @@ const handleProfileSaved = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
+
+watch(() => authStore.sessionEpoch, () => {
+  showEditSheet.value = false
+}, { flush: 'sync' })
 
 const loadData = async () => {
   if (appStore.appInitializing || !authStore.isLoggedIn || authStore.profileLoading || worksLoading.value) return

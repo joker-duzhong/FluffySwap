@@ -50,7 +50,6 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 const products = ref<ProductItem[]>([])
 const selectedProduct = ref<ProductItem | null>(null)
-const paymentOpenid = ref('')
 const showLoginSheet = ref(false)
 const loading = ref(false)
 const paying = ref(false)
@@ -67,7 +66,6 @@ const loadProducts = async () => {
   try {
     const productData = await aurakeyApi.store.products()
     products.value = productData.items
-    paymentOpenid.value = authStore.userProfile?.openid || ''
     selectedProduct.value = products.value[0] || null
   } catch (error: any) {
     uni.showToast({ title: error.message || '加载失败', icon: 'none' })
@@ -104,14 +102,10 @@ const handlePay = async () => {
     showLoginSheet.value = true
     return
   }
-  if (!paymentOpenid.value) {
-    uni.showToast({ title: '获取支付信息失败，请稍后重试', icon: 'none' })
-    return
-  }
 
   paying.value = true
   try {
-    const order = await aurakeyApi.order.create(selectedProduct.value.id, paymentOpenid.value)
+    const order = await aurakeyApi.order.create(selectedProduct.value.id)
     await requestPayment(order.pay_params)
     await confirmOrderPaid(order.order_no)
     authStore.setProfileLoading(true)
@@ -127,7 +121,6 @@ const handlePay = async () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 

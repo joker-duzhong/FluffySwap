@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PageSkeleton from '@/components/PageSkeleton.vue'
@@ -42,6 +42,13 @@ const pageSize = 20
 const loading = ref(false)
 const hasMore = ref(true)
 const showLoginSheet = ref(false)
+
+watch(() => authStore.sessionEpoch, () => {
+  logs.value = []
+  page.value = 1
+  hasMore.value = true
+  loading.value = false
+}, { flush: 'sync' })
 
 const balance = computed(() => authStore.balance)
 const vipPoint = computed(() => authStore.userProfile?.is_vip ? 40 : 0)
@@ -68,6 +75,10 @@ const getLogText = (type: string | number) => {
 }
 
 const loadLogs = async () => {
+  if (!authStore.isLoggedIn) {
+    showLoginSheet.value = true
+    return
+  }
   if (loading.value || !hasMore.value) return
   loading.value = true
   try {
@@ -90,7 +101,6 @@ const handleLoggedIn = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 

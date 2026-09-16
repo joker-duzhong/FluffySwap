@@ -43,10 +43,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { ASPECT_RATIOS } from '@/config'
+import { ASPECT_RATIOS, MAX_REFERENCE_IMAGES } from '@/config'
 import { useAuthStore } from '@/stores/authStore'
 import { useTaskStore } from '@/stores/taskStore'
 import { aurakeyApi, type TaskModelOption } from '@/services/aurakey'
@@ -80,7 +80,17 @@ const selectedModel = computed(() => taskStore.selectedModel)
 const selectedModelName = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.name || selectedModel.value || 'gpt-image-2')
 const selectedCost = computed(() => options.value.find((item) => item.model_id === selectedModel.value)?.cost || 0)
 const canSend = computed(() => Boolean(prompt.value.trim()) && Boolean(selectedModel.value))
-const MAX_REFERENCE_IMAGES = 9
+
+watch(() => authStore.sessionEpoch, () => {
+  stopPolling()
+  taskId.value = ''
+  resultImage.value = ''
+  failedReason.value = ''
+  progress.value = 0
+  status.value = 'pending'
+  mode.value = 'create'
+  showSharePoster.value = false
+}, { flush: 'sync' })
 
 const isGenerating = computed(() => status.value === 'pending' || status.value === 'processing')
 const isSuccess = computed(() => status.value === 'success' || Boolean(resultImage.value))
@@ -196,7 +206,6 @@ const handleRegenerate = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 

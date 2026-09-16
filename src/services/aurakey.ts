@@ -1,5 +1,6 @@
 import { client } from "./uniClient";
 import type { AurakeySystemConfig } from "@/config";
+import { ApiError } from "./apiError";
 
 export interface ApiEnvelope<T> {
   code?: number;
@@ -9,9 +10,32 @@ export interface ApiEnvelope<T> {
 
 export interface TokenResponse {
   access_token: string;
-  refresh_token?: string;
+  refresh_token: string;
   token_type?: string;
 }
+
+export interface PlatformUser {
+  id: string;
+  nickname?: string | null;
+  avatar?: { url: string; id?: string | null } | null;
+  phone: string;
+  needs_phone_binding: boolean;
+  roles: Array<{ id: string; code: string; name: string; scope?: string | null }>;
+}
+
+export interface PendingIdentity {
+  status: "PHONE_REQUIRED";
+  login_ticket: string;
+  expires_at: string;
+}
+
+export interface AuthenticatedIdentity extends TokenResponse {
+  status: "AUTHENTICATED";
+  app_scope: string;
+  user: PlatformUser;
+}
+
+export type IdentityResponse = PendingIdentity | AuthenticatedIdentity;
 
 export interface PaginatedData<T> {
   items: T[];
@@ -240,7 +264,7 @@ export type AurakeySystemConfigUpdate = Partial<AurakeySystemConfig>;
 const ensureOk = <T>(payload: unknown, fallbackMessage: string): T => {
   const envelope = payload as ApiEnvelope<T>;
   if (typeof envelope?.code === "number" && envelope.code !== 200) {
-    throw new Error(envelope.message || fallbackMessage);
+    throw new ApiError(envelope.message || fallbackMessage, envelope.code);
   }
   if (envelope && Object.prototype.hasOwnProperty.call(envelope, "data")) {
     return envelope.data as T;
@@ -285,29 +309,36 @@ export const aurakeyApi = {
 
   auth: {
     miniappLogin: async (appid: string, code: string) => {
-      const res = await client.POST("/auth/miniapp/login", { body: { appid, code } });
-      return ensureOk<TokenResponse>(res.data, "登录失败");
+      const res = await client.POST("/auth/identity/miniapp", { body: { appid, code } });
+      return ensureOk<IdentityResponse>(res.data, "登录失败");
     },
-    bindMiniappPhone: async (appid: string, code: string) => {
-      const res = await client.POST("/auth/miniapp/phone", { body: { appid, code } });
-      return ensureOk<UserProfile>(res.data, "绑定手机号失败");
+    completeMiniappPhone: async (loginTicket: string, phoneCode: string, acceptedTerms: true) => {
+      const res = await client.POST("/auth/identity/complete/miniapp-phone", {
+        body: { login_ticket: loginTicket, phone_code: phoneCode, accepted_terms: acceptedTerms },
+      });
+      return ensureOk<AuthenticatedIdentity>(res.data, "手机号验证失败");
     },
-    bindPhone: async (phone: string, code: string) => {
-      const res = await client.POST("/auth/phone/bind", { body: { phone, code } });
-      return ensureOk<UserProfile>(res.data, "绑定手机号失败");
+    completeSms: async (loginTicket: string, phone: string, code: string, acceptedTerms: true) => {
+      const res = await client.POST("/auth/identity/complete/sms", {
+        body: { login_ticket: loginTicket, phone, code, accepted_terms: acceptedTerms },
+      });
+      return ensureOk<AuthenticatedIdentity>(res.data, "短信验证失败");
+    },
+    sendSms: async (phone: string) => {
+      const res = await client.POST("/auth/sms/send", { body: { phone } });
+      return ensureOk<null>(res.data, "发送验证码失败");
+    },
+    refresh: async (refreshToken: string) => {
+      const res = await client.POST("/auth/refresh", { body: { refresh_token: refreshToken } });
+      return ensureOk<TokenResponse>(res.data, "登录已过期，请重新登录");
     },
     updateMe: async (payload: UserUpdatePayload) => {
       const res = await client.PUT("/auth/me", { body: payload });
-      return ensureOk<UserProfile>(res.data, "更新资料失败");
+      return ensureOk<PlatformUser>(res.data, "更新资料失败");
     },
     getCurrentUser: async () => {
       const res = await client.GET("/auth/me");
-      return ensureOk<UserProfile>(res.data, "加载用户失败");
-    },
-    ensureSession: async (appid: string, code: string) => {
-      const tokenRes = await aurakeyApi.auth.miniappLogin(appid, code);
-      const profile = await aurakeyApi.user.profile();
-      return { token: tokenRes, profile };
+      return ensureOk<PlatformUser>(res.data, "加载用户失败");
     },
   },
 
@@ -414,9 +445,9 @@ export const aurakeyApi = {
   },
 
   order: {
-    create: async (productId: string, openid: string) => {
+    create: async (productId: string) => {
       const res = await client.POST("/aurakey/order/create", {
-        body: { product_id: productId, openid },
+        body: { product_id: productId },
       });
       return ensureOk<OrderCreateResponse>(res.data, "创建订单失败");
     },

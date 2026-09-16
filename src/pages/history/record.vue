@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppTopNav from '@/components/AppTopNav.vue'
 import CreateTaskSheet from '@/components/CreateTaskSheet.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -105,6 +105,12 @@ const showLoginSheet = ref(false)
 const scrollIntoView = ref('')
 const pendingOpenCreate = ref(false)
 const expandedPromptMap = ref<Record<string, boolean>>({})
+
+watch(() => authStore.sessionEpoch, () => {
+  showCreateSheet.value = false
+  expandedPromptMap.value = {}
+  scrollIntoView.value = ''
+}, { flush: 'sync' })
 
 const items = computed(() => historyStore.items)
 const loading = computed(() => historyStore.loading)
@@ -253,7 +259,6 @@ const handleLoggedIn = () => {
 }
 
 const handleLoginRequired = () => {
-  authStore.clearAuth()
   showLoginSheet.value = true
 }
 
