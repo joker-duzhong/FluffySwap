@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
   //   const accountInfo = uni.getAccountInfoSync();
   //   return accountInfo.miniProgram.envVersion === "develop" ? LOCAL_API_BASE_URL : PRODUCTION_API_BASE_URL;
   // } catch {
-  //   return PRODUCTION_API_BASE_URL;
+    return PRODUCTION_API_BASE_URL;
   // }
 
   return LOCAL_API_BASE_URL;

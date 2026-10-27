@@ -25,7 +25,7 @@ export const useAppStore = defineStore("app", {
   }),
   getters: {
     customJSON: (state) => state.systemConfig.custom,
-    isReviewing: (state) => state.systemConfig.custom.miniapp_check_version === AppVersion || false,
+    isReviewing: (state) => state.systemConfig.custom.miniapp_check_version === AppVersion || true,
   },
   actions: {
     setTab(tab: TabName) {

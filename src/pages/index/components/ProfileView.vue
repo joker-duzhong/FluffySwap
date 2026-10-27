@@ -61,7 +61,7 @@
     </view>
 
     <view class="menu-list">
-      <view class="menu-item" @click="goAssetLogs">
+      <view class="menu-item" @click="goAssetLogs" v-if="!useAppStore().isReviewing">
         <view class="menu-left">
           <image :src="ASSETS.iconWallet" mode="aspectFit" />
           <text>灵感明细</text>
